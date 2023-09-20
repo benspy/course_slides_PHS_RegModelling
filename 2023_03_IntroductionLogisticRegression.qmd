@@ -1,0 +1,45 @@
+---
+title: "Introduction to logistic regression"
+author: "Ben Spycher"
+format: ctupres-revealjs
+# footer: |
+#         CTU Bern theme for [Quarto Presentations](https://quarto.org/docs/presentations/revealjs/index.html).
+#         Code available on [GitHub](https://github.com/aghaynes/CTUquarto).
+chalkboard: false
+self-contained: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+## Program overview
+
+| Day     | Time   | Topic                                                  |
+|---------|--------|--------------------------------------------------------|
+| Mon     | AM     | Simple linear regression                               |
+|         | PM     | Multiple linear regression                             |
+| **Tue** | **AM** | **Introduction to logistic regression**                |
+|         | PM     | Model building considerations and strategies           |
+| Wed     | AM     | Models for stratified designs and categorical outcomes |
+|         | PM     | Exercises, QA, wrap-up                                 |
+
+## This mornings's topics
+
+|                                                       |
+|-------------------------------------------------------|
+| **Introduction to logistic regression**
+|	Generalising the linear model (link functions, maximum likelihood estimation)
+|	The logistic model (logistic link, binomial distribution)
+|	Interpretating of coefficients (logits, odds ratios)
+|	Interactions
+
+
+## What is a statistical model
+
+
+
+
+

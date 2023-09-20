@@ -1,0 +1,863 @@
+---
+title: "Simple linear regression"
+author: "Ben Spycher"
+format: ctupres-revealjs
+# footer: |
+#         CTU Bern theme for [Quarto Presentations](https://quarto.org/docs/presentations/revealjs/index.html).
+#         Code available on [GitHub](https://github.com/aghaynes/CTUquarto).
+chalkboard: false
+self-contained: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+## Daily schedule
+
+| Time        | Activity                    |
+|-------------|-----------------------------|
+| 09:00-10:40 | Lectures (with short break) |
+| 10:40-11:00 | Coffee break (20 min)       |
+| 11:00-12:30 | Exercises                   |
+| 12:30-13:30 | Lunch break                 |
+| 13:30-15:00 | Lectures (with short break) |
+| 15:00-15:20 | Coffee break (20 min)       |
+| 15:20-17:00 | Exercises                   |
+
+## Program overview
+
+| Day     | Time   | Topic                                                  |
+|---------|--------|--------------------------------------------------------|
+| **Mon** | **AM** | **Simple linear regression**                           |
+|         | PM     | Multiple linear regression                             |
+| Tue     | AM     | Introduction to logistic regression                    |
+|         | PM     | Model building considerations and strategies           |
+| Wed     | AM     | Models for stratified designs and categorical outcomes |
+|         | PM     | Exercises, QA, wrap-up                                 |
+
+## This morning's topics
+
+|                                                                                    |
+|------------------------------------------------------------------------|
+| **Simple linear regression**                                                       |
+| Refresher: p-values, confidence intervals, two sample $t$-test |
+| Refresher: Assessing linear association (correlation) |
+| Fitting a straight line (least squares estimation)              |
+| Assessing model fit ($R^2$)                                                        |
+
+# Refresher: <br> - *Inference about means* <br> - *Correlation*
+
+## Regression is all about means
+
+In regression modelling, we are interested estimating the conditional **expected value** (or mean) of an **dependent variable** given specific value(s) of one or more **independent variables**:
+
+$$E(Y|X_1=x_1, X_2=x_1, \cdots, X_p=x_1)= f(x_1, x_2, \cdots, x_p)$$ where $f()$ is some function.
+
+Examples:
+
+-   Expected value of systolic pressure depending on age and sex
+-   Seroprevalence of *Toxoplasma gondii* among dogs depending on source of drinking water (spring/river)
+
+## Some terminology
+
+Other terms sometimes used for
+
+-   Dependent variable: Outcome, predicted or explained variable
+-   Independent variables: Exposures, predictors, explanatory variables
+
+We distinguish:
+
+-   **Simple regression**: a single independant variable
+-   **Multiple/multivariable regression**: multiple independent variables - NOT to be confused with multi-variate regression (multiple dependent variables)
+
+## Data types
+
+![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width="90%" fig-align="left"}
+
+## Common regression models
+
+| **Scale**   | ***Examples***           | **Typical models**       |
+|-------------|--------------------------|--------------------------|
+| Continuous  | *BMI, blood pressure*    | Linear regression        |
+| Dichotomous | *Disease/death (yes/no)* | Logistic regression      |
+| Nominal     | *3 disease subtypes*     | Multinomial logist. reg. |
+| Ordinal     | *4 severity stages*      | Ordered logist. reg.     |
+| Count       | *Number of cases*        | Poisson regression       |
+
+## Location and spread
+
+**Location:** Measures where on the x-axis an average value would lie (central tendency).
+
+**Spread:** Measures how widely values vary.
+
+![](pics/location_spread.jpeg)
+
+## Population mean and variance
+
+In statistics, the **expected value** refers to the *true mean* or *population mean* of a random variable and denoted
+
+$$\mu_Y=\operatorname {E}(Y)$$
+
+The *variance* of a random variable is a measure how widely it varies around its mean:
+
+$$\sigma_Y^2=\text{Var}(Y)=\operatorname {E}\left[(Y-\mu_Y)^2\right]$$
+
+## Example - Rolling a fair die
+
+We assign the faces of the die to the (discrete) random variable $Y \in \{1,..,6\}$
+
+\bcenter ![](pics/dice.jpg){width="50%"}\ecenter
+
+If the die is fair, then all faces have equal probability
+
+```{r, echo=FALSE, fig.height=2,  fig.width=4}
+par(mai=c(0.8,0.8,0.1,0))
+plot(1:6,rep(1/6,6), xlab="Y", ylab="P(Y)", ylim=c(0,0.2))
+abline(h=1/6, lty=2, col="blue")
+text(1.5,1/6,"1/6", pos=1, col="blue", cex=1)
+```
+
+## Example - Rolling a fair die
+
+For a discrete random variable that can take on $k$ values
+
+$$\operatorname {E}(Y)=\sum_{i=1}^{k}y_ip_i$$ where $p_i=P(Y=y_i)$.
+
+The expected value for a single roll of a fair die is:
+
+$$\operatorname {E} [Y]=1\cdot {\frac {1}{6}}+2\cdot {\frac {1}{6}}+3\cdot {\frac {1}{6}}+4\cdot {\frac {1}{6}}+5\cdot {\frac {1}{6}}+6\cdot {\frac {1}{6}}=3.5$$
+
+## Example - Normal distribution
+
+The normal distribution is a frequently used distribution for continuous random variables.
+
+The probability distribution (probability density function) of of normally distributed random variable $Y$ with expected value $\mu$ and variance $\sigma^2$ is given by:
+
+$$f(y)=\frac{1}{\sqrt{2\pi \sigma^2 }}e^{-\frac{1}{2}\frac{(y-\mu)^2}{\sigma^2}}$$
+
+## Example - Normal distribution
+
+![](pics/normal_dist.png){fig-align="center"}
+
+## z-Transformation
+
+Suppose $X$ follows a normal distribution distribution with mean $\mu$ and variance $\sigma^2$.
+
+The *standardized* variable $Z=\frac{X-\mu}{\sigma}$ then follows a **standard normal distribution** with mean 0 and variance 1. $$f(z)=\frac{1}{\sqrt{2\pi }}e^{-\frac{1}{2}z^2}$$
+
+## z-Transformation
+
+Assume that body heights of men are normally distributed
+
+![](pics/z_transformation.jpg){fig-align="center"}
+
+## z-Transformation
+
+Probability that a randomly selected man is taller than 180cm:
+
+$$\text{Pr}(X > 180)= 1-\text{Pr}(X \le 180) = 1 - \text{Pr}\left(Z \le \frac{180-171.5}{6.5}\right) $$ We can use the cumulative distribution function `pnorm` in R
+
+```{r}
+#| echo: true
+#| eval: true
+# Using z transformation and standard normal
+z<-(180-171.5)/(6.5)
+1-pnorm(z)
+# or
+pnorm(z, lower.tail = FALSE)
+# or directly using the distribution of X
+1-pnorm(180, mean=171.5, sd=6.5)
+```
+
+## Remember 1.96
+
+Some commonly used quantiles of the standard normal distribution (you will shortly see why).
+
+```{r}
+#| echo: true
+#| eval: true
+qnorm(c(0.95, 0.975, 0.995))
+```
+
+```{r}
+#| echo: false
+#| eval: true
+limitRange <- function(fun, min=-Inf, max=Inf) {
+  function(x) {
+    y <- fun(x)
+    y[x < min  |  x > max] <- NA
+    return(y)
+  }
+}
+
+z<-qnorm(0.975)
+ggplot() + 
+  stat_function(fun = dnorm, color="blue", n=1000) +  
+  geom_vline(xintercept = z, linetype="dashed", color ="blue") +
+  geom_vline(xintercept = -z, linetype="dashed", color ="blue") +
+  stat_function(fun = limitRange(dnorm, min=-z,max=z), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
+  xlim(-4,4) + ylab("Density") + xlab("z") +
+  geom_text(aes(label="1.96", x=z+0.5,y=0.3), size=8) + 
+  geom_text(aes(label="-1.96", x=-z-0.5,y=0.3), size=8) + 
+  geom_text(aes(label="95%", x=0,y=0.12), size=10, color="white") + 
+  theme(text = element_text(size=16))
+```
+
+## Sample mean
+
+$$ \overline{x} \, =  \frac{1}{n}\sum_{i = 1}^{n} x_i \, = \, \frac{x_1 + \ldots + x_n}{n}$$ The sample mean balances out the data:
+
+$$\sum_{i=1}^{n}(x_i- \overline{x})=0$$ \bcenter ![](pics/waage_mittelwert.jpg){width="100%"} \ecenter
+
+## Sample variance
+
+The latter is more commonly used and is related to the concept of variance in probability theory.
+
+**Sample variance**:
+
+$$s^2  =  \frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2$$
+
+alternative notation: $s^2$, $s_x^2$, $Var$, $Var_x$, $VAR$
+
+## Sample standard deviation
+
+To get back to the original scale of the variable x we need to take the square root.
+
+**Standard deviation**
+
+$$s=\sqrt{s^2}=\sqrt{\frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2}$$
+
+Alternative notation: $s_x$, $\text{SD}$, $\text{SD}_x$
+
+## Why divide by $n-1$?
+
+The sample mean is closer to the data points than the true mean would be.
+
+```{r, echo=FALSE, fig.width=6, fig.height=2.5, fig.align="center"}
+set.seed(123)
+dat <-data.frame(Stichprobe=rep(1:10,3),x=rnorm(30))
+par(mai = c(1, 1, 0, 0))
+plot(dat$Stichprobe,dat$x, col="blue", xlab="Sample", ylab="x", ylim=c(-2.1,2.1), xaxt="n", bty="n")
+axis(1, at = 1:10)
+points(1:10,tapply(dat$x,as.factor(dat$Stichprobe), mean), pch=2,col="red")
+abline(h=0,lty=2,col="red")
+```
+
+The mean sum of squares underestimates the true variance. Dividing by $n-1$ (*degrees of freedom*) corrects for the bias.
+
+## Degrees of freedom (df)
+
+-   Relative to the true mean $\mu$ all n deviations $(x_{i}-\mu)$ are free to vary during sampling ($\text{df}=n$).
+
+-   Relative to the sample mean $\overline{x}$ only $n-1$ deviations $(x_{i}-\overline{x})$ are free to vary ($\text{df}=n-1$).
+
+We "use up"" one df by calculating $\overline{x}$. More generally, one df is lost for every fitted parameter used to calculate the mean (relevant in regression modelling).
+
+## What's the problem?
+
+![](pics/sampling_variation.jpg){fig-width="50%"}
+
+We never observe the full population, only 1 sample. Any inference about the population is subject to error.
+
+**Sampling variation**: Chance of variation between samples.
+
+**Sampling distribution**: The distribution of a statistic across different samples.
+
+## Accuracy and precision
+
+Properties of good estimators:
+
+-   **Precision**: Low variance
+-   **Accuracy**: Low bias
+
+![[Source: https://doi.org/10.3390/app11052191](https://www.mdpi.com/2076-3417/11/5/2191)](pics/bias_precision.png)
+
+## The standard error
+
+The standard **standard error** of an estimator is the standard deviation of its sampling distribution.
+
+The **standard error of the sample mean** is given by:
+
+$$SE=\frac{\sigma}{\sqrt{n}}$$ where $\sigma$ is standard deviation of the underlying population from which the data are drawn.
+
+## SE as a measure of precision
+
+The standard error decrease with the square root of sample size.
+
+The relative decrease in standard error from $n=10$ to $n=100$ is the same as from 100 to 1000.
+
+Typically we do not know the population variance of the original population, $\sigma^2$. We therefore usually estimate $SE$ using the sample variance or standard deviation:
+
+$$\hat{SE}=\frac{SD}{\sqrt{n}}$$
+
+## Central limit theorem (CLT)
+
+As sample size increases, the sampling distribution of the mean approaches a normal distribution.
+
+Specifically, the distribution of
+
+$$z=\frac{\overline{x}-\mu}{SE}$$ approaches the *standard normal distribution*. Here $\mu$ is the mean of the underlying distribution, i.e. the true mean.
+
+## Central limit theorem (CLT)
+
+Histograms of standardized means $z$ for increasing sample sizes ![](pics/CLT_exponential.jpeg)
+
+## The normality assumption
+
+**Normality assumption**: We assume the underlying distribution (population) of our measurements $X$ is normal with unknown mean $\mu$ and standard deviation $\sigma$.
+
+Under normality, the sampling distribution of the mean of $\overline{x}$ is *exactly* normal with mean $\mu$ and standard deviation $SE=\frac{\sigma}{\sqrt{n}}$ (no approximation involved).
+
+*Remember:* The standard error is the standard deviation of a sampling distribution.
+
+## The normality assumption
+
+Example: Assume that the body height of men is normally distributed with $\mu=170 \text{ cm}$ and $\sigma=10 \text{ cm}$ (Made up)
+
+```{r}
+#|echo: false
+#|eval: true
+#|fig.align: "center"
+mean<-170
+sd<-10
+normdist<-function(x){dnorm(x,mean=mean, sd=sd)}
+tmean<-mean
+
+ggplot() + 
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd/sqrt(40)), color="red", n=1000) +  
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd/sqrt(40)), geom = "area", fill = "red", alpha = 0.2, n=1000) + 
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd/sqrt(10)), color="orange", n=1000) +  
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd/sqrt(10)), geom = "area", fill = "orange", alpha = 0.2, n=1000) + 
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd), color="blue", n=1000) +  
+  stat_function(fun = dnorm, args=list(mean=mean, sd=sd), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
+  xlim(mean-2.5*sd,mean+2.5*sd) + ylab("Density") + xlab("Body height [cm]") + 
+  geom_text(aes(label="Population, mean=160, SD=10", x=155,y=.05), size=6, color="blue") + 
+  geom_text(aes(label="Means, n=10, SE=3.16", x=160,y=.1), size=6, color="orange") + 
+  geom_text(aes(label="Means, n=40, SE=1.58", x=160,y=.25), size=6, color="red") + 
+  ggtitle(label="Sampling distribution of the mean assuming normality") +
+  theme(text = element_text(size=18))
+
+```
+
+Caveat: $\sigma$ is unknown. We can only estimate $SE$ using $\hat{SE}=\frac{s}{\sqrt{n}}$.
+
+## The normality assumption
+
+In small samples, $z=\frac{\overline{x}-\mu}{\hat{SE}}$ is somewhat wider than the standard normal distribution.
+
+![](pics/CLT_normal.jpeg)
+
+## Student's t-distribution
+
+Under the normality assumption, the statistic $t=\frac{\overline{x}-\mu}{\hat{SE}}$ follows the $t$-distribution with $n-1$ degrees of freedom (one df lost because the mean was used to obtain $s$).
+
+\bcenter![](pics/Student_t.png){width="60%"}\ecenter
+
+## Quantiles of the t-distribution
+
+The $t$-distribution approaches the standard normal distribution as the df increase:
+
+| df                    | 5                        | 50                        | 100                        | 500                        | 1000                        |
+|------------|------------|------------|------------|------------|------------|
+| $t_{\text{df},0.975}$ | `r round(qt(0.975,5),4)` | `r round(qt(0.975,50),4)` | `r round(qt(0.975,100),4)` | `r round(qt(0.975,500),4)` | `r round(qt(0.975,1000),4)` |
+
+## 95%-Confidence intervals
+
+We can used the $t$-distribution to construct an approximate 95%-confidence interval (95%-CI) for the mean.
+
+$$[\overline{x}-t_{n-1,0.975}\hat{SE},\; \overline{x}+t_{n-1,0.975}\hat{SE}]$$ *Defining feature*: A 95%-CI is defined such that, under repeated sampling, 95% of the intervals are expected to contain the true mean.
+
+![](pics/cis.png)
+
+## The Peru lung function data
+
+Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru.
+
+```{r}
+#| echo: true
+#| eval: true
+library(tidyverse)
+data <- read_csv("data/perulung_ems.csv")
+data
+```
+
+## Categorical variables as factors
+
+Change $id$ to integer, and $sex$, and $respsymptoms$ to factors
+
+```{r}
+#| echo: true
+#| eval: true
+data<- data |> mutate(id=as.integer(id), 
+                sex = factor(sex, levels=c(0,1), labels=c("f","m")), 
+                respsymptoms=factor(respsymptoms, levels=c(0,1), labels=c("no","yes")), 
+                asthma_hist=factor(asthma_hist))
+data
+```
+
+## $FEV_1$ by age and sex
+
+```{r}
+#| echo: true
+#| eval: true
+tbl_fev1 <- data  %>% 
+  group_by(sex) %>%
+  summarise(n=n(), mean=mean(fev1), sd=sd(fev1))
+tbl_fev1
+```
+
+## $FEV_1$ by age and sex
+
+```{r}
+#| echo: true
+#| eval: true
+ggplot(data, aes(x=sex, y=fev1, fill=sex)) + 
+  geom_boxplot() + 
+  xlab("Age group") + 
+  ylab("FEV1") 
+```
+
+## 95%-Confidence intervals
+
+```{r}
+#| echo: true
+#| eval: true
+tbl_fev1$SE <-tbl_fev1$sd/sqrt(tbl_fev1$n)
+tbl_fev1$CI_lb<-tbl_fev1$mean - qt(0.975,tbl_fev1$n-1)*tbl_fev1$SE
+tbl_fev1$CI_ub<-tbl_fev1$mean + qt(0.975,tbl_fev1$n-1)*tbl_fev1$SE
+print(tbl_fev1, digits=3)
+```
+
+
+Note: These 95%-CIs are based on the normal assumption, **but even without this assumption they are valid for large sample sizes** because of the CLT.
+
+
+
+## Another approach - Testing
+We formulate following *null hypothesis* and *alternative hypothesis*: 
+
+\begin{eqnarray*} 
+H_0:\ \mu_1 & = & \mu_2 \text{ or equivalently } \Delta=\mu_2-\mu_1=0\\
+H_A:\ \mu_1 & \neq & \mu_2
+\end{eqnarray*} 
+
+Large deviations of  $D = \overline{x}_2-\overline{x}_1$ from 0 on either side provide evidence against $H_0$. 
+
+
+
+
+## The P-value
+**P-value**: The *conditional probability* (under repeated sampling) of obtaining a test statistic s extreme or more extreme than the one observed *given $H_0$ is true*.
+
+Under $H_0$ and the normality assumption, the statistic $t_D=\frac{D}{\hat{SE}_D}$ follows a t-distribution. 
+
+The combined shaded area beyond the $|t_D|$ on either side of 0 gives us the two-sided p-value.
+
+```{r}
+#|echo: false
+#|eval: true
+#|out.width: 80%
+#|fig.align: "center"
+t<-1.8
+
+ggplot() + 
+  stat_function(fun = function(x){dt(x,df=618)}, color="blue", n=1000) +  
+  stat_function(fun = limitRange(dnorm, min=t), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
+  stat_function(fun = limitRange(dnorm, max=-t), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
+  xlim(-4,4) + ylab("Density") + xlab("t") + 
+  geom_vline(xintercept = t, linetype="dashed", color ="blue") +
+  geom_vline(xintercept = -t, linetype="dashed", color ="blue") +
+  geom_text(aes(label="t[D]", x=t+0.5,y=0.3),parse=T, size=8) + 
+  geom_text(aes(label="-t[D]", x=-t-0.5,y=0.3),parse=T, size=8) + 
+  theme(text = element_text(size=15))
+```
+
+
+## Two-sample $t$-test
+We distinguish two situations:
+
+:::{style="font-size: 60%;"}
+Assumptions|SE of Difference |df of $t$-distribution| R t.test option
+-----|------|------|-----
+Equal variances | $\hat{SE}_D=s_p\cdot\sqrt{1/n_1+1/n_2}$| $n-2$ |`var.equal = TRUE`
+Unequal variances | $\hat{SE}_D=\sqrt{s_1^2/n_1+s_2^2/n_2}$|  complicated formula |`var.equal = FALSE`
+Here $s_p$ is a pooled estimator of the common standard deviation. For more details see the [Wikipedia article](https://en.wikipedia.org/wiki/Student%27s_t-test) 
+:::
+
+The second version is known as Welch's test. It is the default in R (we recommend to keep it).
+
+
+## Two-sample $t$-test
+Let's test for differences in mean $FEV_1$ between sexes in the smaller age groups 
+
+```{r}
+#| echo: true
+#| eval: true
+t.test(fev1~sex, data=data)
+```
+Interpretation: There is strong evidence of a difference in mean $FEV_1$ between sexes ($P<0.001$). 
+
+
+## Interpreting the P-value
+
+![From: Sterne et al. BMJ 2001;322:226](pics/p_strength.jpg)
+
+## A word of caution {.smaller}
+
+::: columns
+::: column
+
+The P-value is frequently (if not usually) misinterpreted:
+
+*  [A dirty dozen: twelve p-value misconceptions](https://doi.org/10.1053/j.seminhematol.2008.04.003)
+
+$P \le 0.05$ has been immensely abused in the literature and often equated with proving an effect. Here some of the criticisms:  
+
+*  [The ASA statement on p-values](https://doi.org/10.1080/00031305.2016.1154108)
+*  [Scientists rise up against statistical significance](https://doi.org/10.1080/00031305.2016.1154108)
+*  [Sifting the evidence — what's wrong with significance tests?](https://doi.org/10.1136/bmj.322.7280.226)
+
+:::
+:::column
+
+![from Sterne & Davy Smith. BMJ 2001;322:226-31](pics/random_news.png)
+:::
+:::
+
+## Assessing linear association
+This table contains data on body weight in kg and plasma volume in l in $n=8$ healthy men: 
+
+```{r, echo=FALSE}
+data<-read.table("data/plasvol.csv",header=TRUE,sep=";")
+#names(data)<-c("ID","Gewicht [kg]", "Plasmavolumen [l]")
+kable(data)
+``` 
+
+
+
+## Assessing linear association
+Scatterplot of plasma volume against body weight
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
+```
+## Assessing linear association
+The data seem to be well approximated by a straight line. 
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+w<-c(55,75)
+v<-predict(reg,newdata=data.frame(w))
+lines(x=w,y=v)
+
+```
+
+## Assessing linear association 
+Positive (negative) deviations from the mean weight tend to coincied with positive (negative) deviations from mean plasma volume.
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
+abline(h=mean(data[,3]),lty=2,lwd=1.5, col="blue")
+abline(v=mean(data[,2]),lty=2,lwd=1.5, col="blue")
+text(70,3.2,lab="+ +", col="blue")
+text(63,3.2,lab="- +", col="blue")
+text(63,2.8,lab="- -", col="blue")
+text(70,2.8,lab="+ -", col="blue")
+text(67,2.5,lab=expression(bar("x")), col="blue", pos=2)
+text(55,3.0,lab=expression(bar("y")), col="blue", pos=1)
+```
+## Correlation coefficient
+
+__Pearson correlation coefficient__ is a measure of linear association:  
+
+$$r_{xy}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}\sqrt{\sum_{i=1}^n(y_i-\overline{y})^2}} $$
+
+It takes on values between -1 (perfect negative correlation) and 1 (perfect negative correlation).
+
+Correlation between plasma volumen and body weight:
+```{r}
+#| echo: true
+#| eval: true
+cor(dat$v,dat$w)
+```
+
+
+
+## Interpreting the correlation coefficient
+The correlation coefficient is a measure of __linear association__. A correlation of 0 does not imply no association.
+
+![ Wikipedia User:Schutz CC BY-SA 3.0](pics/correlation_examples.png){ width=90% }
+
+## Fitting a straight line 
+How can we fint the best fitting straight line?  
+
+_Idea_: Lets view $y_i$ ias the sum of a linear function of $x_i$ and a error term $\varepsilon_i$
+
+$$y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
+Now lets find $\beta_0$ and $\beta_1$ such that the error terms become small. 
+
+## Least squares estimation (LSE)
+In LSE the estimates $\beta_0$ and  $\beta_1$ are obtained by minimizing the *residual sum of squares*
+
+$$RSS= \sum_{i=1}^n(y_i -\beta_0 + \beta_1 x_i)^2$$
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8, mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+w<-c(55,75)
+v<-predict(reg,newdata=data.frame(w))
+lines(x=w,y=v)
+resy<-as.vector(rbind(reg$fitted.values,dat$v,NA))
+resx<-as.vector(rbind(dat$w,dat$w,NA))
+lines(resx,resy,col="blue", lwd=2)
+```
+
+
+## Least squares estimation (LSE)
+This results in the following estimators: 
+
+
+$$\hat{\beta_1}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sum_{i=1}^n(x_i-\overline{x})^2}$$
+
+$$\hat{\beta_0}=\overline{y}-\hat{\beta_1}\overline{x}$$
+
+The second equation can be written as $\overline{y}=\hat{\beta_0}+\hat{\beta_1}\overline{x}$ meaning that the regression line goes through the point given by $\overline{x}$ und $\overline{y}$.
+
+
+## Example plasma volume  
+In our example we have: $\hat{\beta}_0=$ `r round(reg$coefficients[1],4)` und $\hat{\beta}_1=$ `r round(reg$coefficients[2],4)`
+
+```{r}
+#| echo: false
+#| eval: true
+
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", 
+     ylim=c(2.4,3.6),xlim=c(55,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+# w<-c(0,75)
+# v<-predict(reg,newdata=data.frame(w))
+# lines(x=w,y=v)
+# lines(c(0,0),c(0,reg$coefficients[1]),,col="red", lwd=2)
+#abline(h=0,lty=2, lwd=1.5)
+# abline(h=reg$coefficients[1],lty=2, lwd=1.5)
+abline(reg, lwd=1.5)
+abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+abline(v=mean(dat$w),lty=2, lwd=1.5, col="blue")
+# lines(c(mean(dat$w),mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]+reg$coefficients[2]*mean(dat$w)),col="red", lwd=2)
+lines(c(0,mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]),col="blue", lwd=2)
+text(55,mean(dat$v),lab=expression(bar("y")), col="blue", pos=3)
+text(mean(dat$w),2.4,lab=expression(bar("x")), col="blue", pos=4)
+text(72,3.3,lab=expression(hat("y")==0.0857+0.0436~"x"), pos=3)
+# text(0,0,lab=expression(hat(beta)[0]), col="red", pos=3)
+# text(mean(dat$w),2,lab=expression(hat(beta)[1]*bar("x")), col="red", pos=4)
+```
+
+## Interpretation von $\beta_0$   
+$\hat{\beta}_0$ is the estimated value of $y$ for $x=0$ and is referred to as **constant** or **intercept**. 
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Gewicht [kg]" ,ylab="Plasmavolumen [l]", ylim=c(0,3.6),xlim=c(0,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+abline(reg, lwd=1.5)
+lines(c(0,0),c(0,reg$coefficients[1]),,col="red", lwd=2)
+abline(h=0,lty=2, lwd=1.5)
+abline(h=reg$coefficients[1],lty=2, lwd=1.5)
+# abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+# abline(v=mean(dat$w),lty=2, lwd=1.5, col="blue")
+# lines(c(mean(dat$w),mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]+reg$coefficients[2]*mean(dat$w)),col="red", lwd=2)
+# lines(c(0,mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]),col="blue", lwd=2)
+# text(5,2.55,lab=expression(bar("y")=="3.00"), col="blue", pos=3)
+# text(62,0.2,lab=expression(bar("x")=="66.88"), col="blue", pos=4)
+text(0,0,lab=expression(hat(beta)[0]), col="red", pos=3)
+# text(mean(dat$w),2,lab=expression(hat(beta)[1]*bar("x")), col="red", pos=4)
+```
+
+
+## Centering independent variables
+
+Often  $x=0$ has no practival meaning and lies outside the range of observed data.  
+
+By first centering then independent variable $\tilde{x}=x-\bar{x}$ and fitting the line 
+
+$$y_i= \beta_0 + \beta_1 \tilde{x}_i + \varepsilon_i$$
+the new intercept $\hat{\beta}_0$ estimates $y$ for $x=\bar{x}$. The slope $\hat{\beta}_1$ is not affected. 
+
+
+## Example plasma volume  
+```{r}
+#| echo: false
+#| eval: true
+dat$wc<-dat$w-mean(dat$w)
+reg<-lm(v~wc, data=dat)
+```
+
+Centering body weight we get $\hat{\beta}_0=$ `r round(reg$coefficients[1],3)` und $\hat{\beta}_1=$ `r round(reg$coefficients[2],4)`
+
+Estimated plasma volume in men of average weight is `r round(reg$coefficients[1],3)` l. 
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-height: 6
+#| fig-width: 10
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(dat$wc,dat$v,bty="n",xlab="Centered body weight [kg]" ,ylab="Plasma volume [l]", xlim=c(-10,10),ylim=c(0,3.6))
+abline(reg, lwd=1.5)
+abline(h=0,lty=2, lwd=1.5)
+abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+abline(v=mean(dat$wc),lty=2, lwd=1.5, col="blue")
+lines(c(mean(dat$wc),mean(dat$wc)),c(0,reg$coefficients[1]),col="red", lwd=2)
+text(0,1.5,lab=expression(hat(beta)[0]), col="red", pos=4)
+```
+
+
+## Interpretation von $\beta_1$  
+
+$\hat{\beta}_1$ is the estimated change in $y$ if $x$ increses by 1 unit. It is referred to as  **slope**. IWe estimate and increase in plasma volume by `r round(reg$coefficients[2],4)` l (`r round(reg$coefficients[2]*1000,1)`ml) per kg higher weight.
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-height: 6
+#| fig-width: 10
+par(cex=1.8,mai=c(2,1.5,0.1,0.5))
+plot(dat$wc,dat$v,bty="n",xlab="Gewicht zentriert [kg]" ,ylab="Plasmavolumen [l]", xlim=c(-5,5),ylim=c(2.5,3.5))
+abline(reg, lwd=1.5)
+lines(c(0,1),c(mean(dat$v),mean(dat$v)),col="blue", lwd=2)
+lines(c(1,1),c(mean(dat$v),mean(dat$v)+reg$coefficients[2]),col="red", lwd=2)
+text(1,3,lab=expression(hat(beta)[1]), col="red", pos=4)
+```
+
+## Relationship between $\hat{\beta_1}$ and $r_{x,y}$
+The regression slope is related to the Pearson correlation coefficient by
+$$\hat{\beta_1}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sum_{i=1}^n(x_i-\overline{x})^2}=\frac{s_y}{s_x}r_{x,y}$$
+
+The slope measures differences in units of $y$ per units of $x$ (in our example l/kg). 
+
+The correlation coefficient is unitless and ranges from -1 to 1.
+
+
+## What does the model explain?
+\bcenter ![ ](pics/abc.png) \ecenter
+
+
+
+## What does the model explain?
+For a given observation $y_i$ let's define:   
+
+$$
+\begin{aligned}
+ a &:=  (y_i-\overline{y}) &= \text{"Total" deviation} \\
+ b &:= (y_i-\hat{y}_i)  &= \text{"Unexplained" deviation (residual)} \\
+ c &:= (\hat{y}_i-\overline{y})  &= \text{"Explained" deviation}
+\end{aligned}
+$$  
+
+Then: $(y_i-\overline{y})=(y_i-\hat{y}_i+\hat{y}_i-\overline{y})=(y_i-\hat{y}_i)+(\hat{y}_i-\overline{y})$   
+
+$$a=b+c$$   
+
+
+
+## Decomposing the sum of squares
+
+Now squaring both sides of the equation  
+
+$(y_i-\overline{y})^2=(y_i-\hat{y}_i)^2+(\hat{y}_i-\overline{y})^2+2 (y_i-\hat{y}_i)(\hat{y}_i-\overline{y})$   
+
+and summing over all $n$ points
+
+$\sum_{i=1}^n(y_i-\overline{y})^2=\sum_{i=1}^n(y_i-\hat{y}_i)^2+\sum_{i=1}^n(\hat{y}_i-\overline{y})^2+0$   
+
+The cross-products sum to zero. 
+
+This is called the "fundamental equation of regression analysis"
+
+
+$$
+\begin{aligned}
+  &\sum_{i=1}^n(y_i-\overline{y})^2& &=& &\sum_{i=1}^n(y_i-\hat{y}_i)^2& &+& &\sum_{i=1}^n(\hat{y}_i-\overline{y})^2 \\
+  &\text{Total SS}&  &=& &\text{Residual SS}&  &+& &\text{Explained SS} \\
+  &\text{TSS}&  &=& &\text{RSS}&  &+& &\text{ESS}
+\end{aligned}
+$$  
+
+## Coefficient of determination $R^2$
+
+The __coefficient of determination__ $R^2$ measures the proportion of variation in $Y$ that is explained by the regression model: 
+$$R^2=\frac{ESS}{TSS}=1-\frac{RSS}{TSS}$$  
+
+In simple linear regression $R^2=r_{x,y}^2$  (hence the notation).
+
+## Example plasma volume
+Verify the relationships between $r_{v,w}$, $\hat{\beta}_1$, and  $R^2$
+
+```{r}
+#| echo: true
+#| eval: true
+
+# standard deviations of volume and weight
+sd(dat$v)
+sd(dat$w)
+
+# Pearson correlation coefficient
+cor(dat$v, dat$w)
+
+```
+
+
+## Example plasma volume
+Verify the relationships between $r_{v,w}$, $\hat{\beta}_1$, and  $R^2$
+
+```{r}
+#| echo: true
+#| eval: true
+
+# Linear regression of volume on weight
+reg<-lm(v~w, data=dat)
+summary(reg)
+
+```
+
+## Anscombe's quartet
+Don't be misled by numbers, visualize your data!
+Here four datasets with identical (up to 2 decimal places) $\hat{\beta}_0$, $\hat{\beta}_1$, $r_{x,y}$, and  $R^2$
+
+![Wikipedia User:Schutz CC BY-SA 3.0](pics/Anscombe.svg){width=60%}
+
+
+
+## Summary
+
+* Pearson correlation coefficient is a measure of linear association 
+* The slope coefficient estimates the increase in $Y$ given and unit increase in $X$
+* The coefficient of determination measures the proportion of variation of $Y$ that explained by the model
+* In simple linear regression, these measures are closely related
+

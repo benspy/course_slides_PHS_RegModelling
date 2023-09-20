@@ -1,0 +1,379 @@
+---
+title: "Simple linear regression"
+author: "Ben Spycher"
+format: ctupres-revealjs
+# footer: |
+#         CTU Bern theme for [Quarto Presentations](https://quarto.org/docs/presentations/revealjs/index.html).
+#         Code available on [GitHub](https://github.com/aghaynes/CTUquarto).
+chalkboard: false
+self-contained: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+## Daily schedule
+
+| Time        | Activity                    |
+|-------------|-----------------------------|
+| 09:00-10:40 | Lectures (with short break) |
+| 10:40-11:00 | Coffee break (20 min)       |
+| 11:00-12:30 | Exercises                   |
+| 12:30-13:30 | Lunch break                 |
+| 13:30-15:00 | Lectures (with short break) |
+| 15:00-15:20 | Coffee break (20 min)       |
+| 15:20-17:00 | Exercises                   |
+
+## Program overview
+
+| Day     | Time   | Topic                                                  |
+|---------|--------|--------------------------------------------------------|
+| **Mon** | **AM** | **Simple linear regression**                           |
+|         | PM     | Multiple linear regression                             |
+| Tue     | AM     | Introduction to logistic regression                    |
+|         | PM     | Model building considerations and strategies           |
+| Wed     | AM     | Models for stratified designs and categorical outcomes |
+|         | PM     | Exercises, QA, wrap-up                                 |
+
+## This morning's topics
+|                                                                                    |
+|------------------------------------------------------------------------|
+| **Simple linear regression**                                                       |
+| Refresher: p-values, confidence intervals, correlation, two sample $t$-test, ANOVA |
+| Fitting the simple linear regression model (least squares estimation)              |
+| Model assumptions (normality, misconceptions, transformations)                     |
+| Assessing model fit ($R^2$)                                                        |
+
+# Refresher: <br> - *Inference about means* <br> - *Correlation*
+
+## Regression is all about means
+
+In regression modelling, we are interested estimating the conditional **expected value** (or mean) of an **dependent variable** given specific value(s) of one or more **independent variables**:
+
+$$E(Y|X_1=x_1, X_2=x_1, \cdots, X_p=x_1)= f(x_1, x_2, \cdots, x_p)$$ where $f()$ is some function.
+
+Examples:
+
+-   Expected value of systolic pressure depending on age and sex
+-   Seroprevalence of *Toxoplasma gondii* among dogs depending on source of drinking water (spring/river)
+-   Incidence of repiratory tract infections among infants by season
+
+## Some terminology
+
+Other terms sometimes used for
+
+-   Dependent variable: Outcome, predicted or explained variable
+-   Independent variables: Exposures, predictors, explanatory variables
+
+We distinguish:
+
+-   **Simple regression**: a single independant variable
+-   **Multiple/multivariable regression**: multiple independent variables - NOT to be confused with multi-variate regression (multiple dependent variables)
+
+
+## Data types
+![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width=90% fig-align="left"}
+
+## Some types of regression models
+|Type of outcome |Type of model
+|--------|------------------
+|Continuous | Linear regression
+|Binary | Logistic regression
+|Ordinal | Ordinal logistic regression
+|Nominal | Multinomial logistic regression
+|Count | Poisson regression 
+
+
+## What do we mean by 'expected value'
+The expected value $E(Y)$ of a random variable is the (usually unknown) true mean of the underlying population 
+
+We can think of it as the number that the sample mean 
+$$ \overline{x} \, =  \frac{1}{n}\sum_{i = 1}^{n} x_i \, = \, \frac{x_1 + \ldots + x_n}{n}$$
+would converge to as the sample size $n$ increases.
+
+## Measurung central tendency
+
+Sample mean 
+To compute the sample mean simply 
+
+*  Sum up all values    
+*  Divide by $n$   
+
+$$ \overline{x} \, =  \frac{1}{n}\sum_{i = 1}^{n} x_i \, = \, \frac{x_1 + \ldots + x_n}{n}$$
+
+Whats the mean of these values?  6,  8, 11,  3,  5,  6
+
+
+## Inferences about the mean
+
+Relevant basic concepts and methods from basic statistics
+
+-   Mean and standard deviation (SD) as measures of central tendency and spread
+-   Population mean *expectation* vs. sample mean
+-   Sampling distribution and standard error
+-   The role of the $t$-distribution
+-   Confidence intervals
+-   Comparing means: two-sample $t$-test, ANOVA
+
+
+
+## Describing distributions -  Location and spread
+**Location:** Measures where on the x-axis an average value would lie (central tendency).  
+
+**Spread:** Measures how widely values vary.
+
+![](pics/location_spread.jpeg)
+
+## Skewed and symmetric distributions
+
+The median will differ from the mean in the case of skewed distribution
+
+![ ](pics/skewed.jpeg)
+
+
+## Expected value of a random variable
+The *expected value* $\operatorname {E}(Y)$ of a random variable $Y$ is its "average value"
+
+It is calculated as a probability weighted average all the possible outcomes. For a discrete random variable that can take on $k$ values:
+
+$$\operatorname {E}(Y)=\sum_{i=1}^{k}y_ip_i$$
+where $p_i=P(Y=y_i)$ (probability mass function)
+
+For the outcome of a roll of a fair die: 
+$\operatorname {E} [Y]=1\cdot {\frac {1}{6}}+2\cdot {\frac {1}{6}}+3\cdot {\frac {1}{6}}+4\cdot {\frac {1}{6}}+5\cdot {\frac {1}{6}}+6\cdot {\frac {1}{6}}=3.5$
+
+
+
+
+## Population mean and variance
+In statistics, the expected value is often referred to as the *mean* or *population mean* of a random variable and denoted 
+
+$$\mu_Y=\operatorname {E}(Y)$$
+The *variance* of a random variable is a measure how widely it varies around its mean: 
+
+$$\sigma_Y^2=\text{Var}(Y)=\operatorname {E}\left[(Y-\mu_Y)^2\right]$$
+
+
+
+
+
+
+
+## Sample mean 
+The sample mean "balances out" the data: 
+
+$$\sum_{i=1}^{n}(x_i- \overline{x})=0$$
+\bcenter ![ ](pics/waage_mittelwert.jpg){ width=100% } \ecenter
+
+
+## Measuring dispersion
+
+Simple idea: Let's take the average of the deviations from the mean. But these sum to zero. 
+
+So let's take the absolute deviations, resulting in the mean absolute deviation (MAD):
+$$ \frac{1}{n} \sum_{i = 1}^n\big|x_i - \overline{x}|$$
+
+... or the squared deviations, resulting in the mean sum of squares: 
+$$\frac{1}{n } \sum_{i = 1}^n\big(x_i - \overline{x})^2$$
+
+## Sample variance
+
+The latter is more commonly used and is related to the concept of variance in probability theory. 
+
+**Sample variance**:
+
+$$s^2  =  \frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2$$
+
+alternative notation: $s^2$, $s_x^2$, $Var$, $Var_x$, $VAR$
+
+
+
+## Sample standard deviation
+To get back to the original scale of the variable x we need to take the square root.
+
+**Standard deviation**
+
+$$s=\sqrt{s^2}=\sqrt{\frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2}$$
+
+Alternative notation: $s_x$, $\text{SD}$, $\text{SD}_x$
+
+
+## Why divide by $n-1$?
+
+The sample mean is closer to the data points than the true mean would be. 
+
+```{r, echo=FALSE, fig.width=6, fig.height=2.5, fig.align="center"}
+set.seed(123)
+dat <-data.frame(Stichprobe=rep(1:10,3),x=rnorm(30))
+par(mai = c(1, 1, 0, 0))
+plot(dat$Stichprobe,dat$x, col="blue", xlab="Sample", ylab="x", ylim=c(-2.1,2.1), xaxt="n", bty="n")
+axis(1, at = 1:10)
+points(1:10,tapply(dat$x,as.factor(dat$Stichprobe), mean), pch=2,col="red")
+abline(h=0,lty=2,col="red")
+```
+
+The mean sum of squares underestimates the true variance. Dividing by $n-1$ (*degrees of freedom*) corrects for the bias.
+
+## Degrees of freedom (df)
+
+* Relative to the true mean $\mu$ all n deviations $(x_{i}-\mu)$ are free to vary during sampling ($\text{df}=n$).
+
+* Relative to the sample mean $\overline{x}$ only $n-1$ deviations $(x_{i}-\overline{x})$ are free to vary ($\text{df}=n-1$). 
+
+We "use up"" one df by calculating $\overline{x}$. More generally, one df is lost for every fitted parameter used to calculate the mean 
+(relevant in regression modelling). 
+
+
+## Population and samples
+
+![](pics/sampling_variation.jpg)
+
+
+## What's the problem?
+
+![](pics/sampling_variation.jpg){fig-width=50%}
+
+We never observe the full population, only 1 sample. Any inference about the population is subject to error.
+
+**Sampling variation**: Chance of variation between samples.
+
+**Sampling distribution**: The distribution of a statistic across different samples.
+
+
+## Accuracy and precision
+
+Properties of good estimators: 
+
+* **Precision**: Low variance
+* **Accuracy**: Low bias
+
+![[Source: https://doi.org/10.3390/app11052191](https://www.mdpi.com/2076-3417/11/5/2191)](ics/bias_precision.png)
+
+## First get an overview of the dataset
+
+Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
+
+```{r}
+#| echo: true
+#| eval: true
+library(tidyverse)
+data <- read_csv("data/perulung_ems.csv")
+str(data)
+```
+## Make sure data types are correctly represented in R
+
+Read in again with $id$ as integer, and $sex$, and $respsymptoms$ as factors (categorical variables)
+
+```{r}
+#| echo: true
+#| eval: true
+data<- data |> mutate(id=as.integer(id), 
+                sex = factor(sex, levels=c(0,1), labels=c("f","m")), 
+                respsymptoms=factor(respsymptoms, levels=c(0,1), labels=c("no","yes")), 
+                asthma_hist=factor(asthma_hist))
+data
+```
+
+
+
+## Standard error of the mean
+
+## The normality assumption
+
+## The $t$-distubution
+
+## Confidence intervals for the mean
+
+## One-sample t-test
+
+## Comparing the means of two groups
+
+## Two-sample t-test
+
+## Interpreting the p-value
+
+## Cautonary not about $p<0.05$
+
+## Comparing means of multiple groups
+
+## ANOVA
+
+## ANOVA F-Test
+
+## Associations between two continueous variables
+
+Scatterplots with different associations
+
+## What do we mean by linear association?
+
+## Pearson's correlation coefficient
+
+
+
+
+# The simple linear regression model
+
+## Linear models - what's in the name?
+
+$$E(Y)= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots +\beta_pX__p$$
+
+## Fitting a straight line
+
+## Regression equation
+
+## Meaning of coefficients
+
+## Regression equation
+
+Graph showing meaning ot $\beta_0$ and $\beta_1$
+
+## What we can't explain - Residuals
+
+Graph showing meaning residuals
+
+## Fitting the model
+
+minimizing the sum of squares
+
+## OLS Estimators
+
+## Estimating residual variance
+
+## Standard errors for $\beta_0$ and $\beta_1$
+
+## Confidence interval for the slope
+
+## Test for an association
+
+## R output
+
+## Model assumptions
+
+## Misconseptions about normality
+
+-   not the outcome but the residuals
+-   for large samples not so relevant
+-   t-test quite robust against departures
+
+## Variable transformations
+
+log transforms
+
+## How much of Y do we explain with X
+
+Total variation
+
+## Explained variation
+
+## Unexplained variation
+
+## Coefficient of determination, $R^2$
+
+## $R^2$ and $r$
+
+## $r$ and $\beta_1$
+
+## Ascombe's quintett

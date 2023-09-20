@@ -1,0 +1,42 @@
+---
+title: "Model building considerations and strategies"
+author: "Ben Spycher"
+format: ctupres-revealjs
+# footer: |
+#         CTU Bern theme for [Quarto Presentations](https://quarto.org/docs/presentations/revealjs/index.html).
+#         Code available on [GitHub](https://github.com/aghaynes/CTUquarto).
+chalkboard: false
+self-contained: true
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(ggplot2)
+library(knitr)
+```
+
+## Program overview
+
+| Day | Time   | Topic                                                  |
+|-----|--------|--------------------------------------------------------|
+| Mon | AM     | Simple linear regression                               |
+|     | PM     | Multiple linear regression                             |
+| Tue | AM     | Introduction to logistic regression                    |
+|     | **PM** | **Model building considerations and strategies**       |
+| Wed | AM     | Models for stratified designs and categorical outcomes |
+|     | PM     | Exercises, QA, wrap-up                                 |
+
+## This afternoon's topics
+
+|                                                                               |
+|------------------------------------------------------------------------|
+| **Model building considerations and strategies**
+|	Testing (Wald and likelihood ratio tests)
+|	Assessing linearity of association
+|	Purposeful variable selection
+|	Special issues in prediction modelling (calibration, discrimination, overfitting)
+
+
+## Revisit the maximum likelihood estimation
+
+
