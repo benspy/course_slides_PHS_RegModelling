@@ -9,3 +9,5 @@ contributes:
       slide-number: c/t
       show-slide-number: all
       preview-links: true
+      html: 
+       css: styles.css

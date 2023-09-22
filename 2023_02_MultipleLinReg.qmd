@@ -9,12 +9,14 @@ chalkboard: false
 self-contained: true
 ---
   
-  ```{r setup, include=FALSE}
+```{r setup, include=FALSE}
 library(tidyverse)
 library(ggplot2)
 library(knitr)
 library(latex2exp)
 library(fastDummies)
+library(scatterplot3d)
+library(car)
 ```
 
 
@@ -48,7 +50,7 @@ Where the $\varepsilon_i$ are independently (_i. independence_), normally distri
 
 The second assumption that the conditional mean of  $Y_i$ given $X_i= x_i$ is: 
 
-$$E(Y_i|X_i=x_i)=\mu_{y|x}=\beta_0 + \beta_1 x$$
+$$E(Y_|X=x)=\mu_{y|x}=\beta_0 + \beta_1 x$$
 
 
 
@@ -415,20 +417,20 @@ head(dummies, 8)
 The first factor level, here `never`, is used as reference category (not included in regression)
 
 ## Interpretation
-$\hat{\text{FEV}}_1= \hat{\beta_0} + \hat{\beta_1}D1 +\hat{\beta_2} D2 =  1.613 -0.042 \cdot D1 -0.111\cdot D2$
+$\hat{\text{FEV}}_1= \hat{\beta}_0 + \hat{\beta}_1 D1 +\hat{\beta}_2 D2 =  1.613 -0.042 \cdot D1 -0.111\cdot D2$
 
 Mean $\text{FEV}_1$ by category of asthma history: 
 
-* never: $\hat{\beta_0} + \hat{\beta_1} \cdot 0 + \hat{\beta_2} \cdot 0 = 1.613 $ 
-* previous: $\hat{\beta_0} + \hat{\beta_1} \cdot 1 + \hat{\beta_2} \cdot 0 = 1.613 -0.042 = 1.571$ 
-* current: $\hat{\beta_0} + \hat{\beta_1} \cdot 0 + \hat{\beta_2} \cdot 1 = 1.613 -0.111=1.503$
+* never: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 0 = 1.613$  
+* previous: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 1 + \hat{\beta}_2 \cdot 0 = 1.613 -0.042 = 1.571$ 
+* current: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 1 = 1.613 -0.111=1.503$
 
 Thus $\beta_1$ and $\beta_2$ represent differences in means of the corresponding catagories to the reference category. 
 
 The differences explain only a small fraction of the variation in $FEV_1$: $R^2=0.012$.
 
 
-## Decompsition of sum of squares
+## Decomposition of sum of squares
 
 As when deriving $R^2$ we can decompose the total sum of squares:  
 
@@ -442,14 +444,14 @@ We have $\text{TSS}=\text{ESS}+\text{RSS}$.  Here $p$ is the number of parameter
 
 In our context, the $\hat{y}_i$ are the group means, $\text{ESS}$ the _between group_  and $\text{RSS}$ the _within group_ sum of squares.  
 
-## Standard F-statistic in output
-The standard F-statistic in the output is ratio of the mean (division of $\text{SS}$ with $df$) explained to the mean residual sum of squares: 
+## F-statistic in output
+The F-statistic in the standard output is ratio of the mean (division of $\text{SS}$ with $df$) explained to the mean residual sum of squares: 
 
 $$F=\frac{\frac{\text{ESS}}{p-1}}{\frac{\text{RSS}}{n-p}}$$
 Large values of $F$ mean that the model (here the group differences) explain a large fraction of the total variability.  
 
 ## Standard $F$-test in output
-The $F$-test in the model output tests whether the slope parameters of the model are all zero, i.e. the model does not contribute to explaining the dependent variable. 
+The $F$-test in the standard output tests whether the slope parameters of the model are all zero, i.e. the model does not contribute to explaining the dependent variable (global $F$). 
 
 In our case: $H_0: \beta_1=\beta_2=0$
 
@@ -510,6 +512,8 @@ summary(anova_1)
 
 ## Changing the reference category
 To change the reference category using the `relevel` function. 
+
+Using current asthma as the references category: 
 \scriptsize
 ```{r}
 #| echo: true
@@ -517,62 +521,225 @@ To change the reference category using the `relevel` function.
 reg<-lm(fev1~relevel(asthma_hist, ref="current asthma"), data=data)
 ```
 
-This does not affect the $F$-test.
-```{r}
-#| echo: false
-#| eval: true
-my.summary(summary(reg))
+
+```{css echo=FALSE}
+.small-code{
+  font-size: 80%  
+}
 ```
 
 
+This does not affect the $F$-test.
+
+<div class=small-code>
+```{r}
+#| echo: false
+#| eval: true
+
+x<-data.frame(summary(reg)$coef[,1])
+names(x)<-"Estimate"
+x
+x<-summary(reg)
+cat(paste(c("\nF-statistic:", " on"," and"), round(x$fstatistic,2), collapse=""),
+        "DF, p-value:",
+        format.pval(pf(x$fstatistic[1L], x$fstatistic[2L], x$fstatistic[3L], 
+                       lower.tail = FALSE), digits=3))
+
+```
+</div>
+
+
+
 ## Multiple linear regression
+Generally, with multiple independent variables, $x_1, x_2, \dots, x_k$, we write the linear model as:
 
-The model
+$$Y_i= \beta_0 + \beta_1 x_{1,i} + \beta_2 x_{2,i} +\dots + \beta_k x_{k,i}+ \varepsilon_i$$
 
-same model assumptions
+Where the  $\varepsilon_i$ are independently (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
 
 
-## Objectives of model building
-Common reasons for building a regression model with multiple independent variables: 
+## Multiple linear regression
+The conditional mean of  $Y_i$ given specific values of the independent variables $x_1, x_2, \dots, x_k$ is thus: 
+
+$$\mu_{y|\mathbf{x_1, x_2,\dots,x_k}}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
+We obtain the $k+1$ $\beta$-parameters by least squares estimation. The formulas for the estimates and their standard errors are omitted as this would require matrix notation. The residual sum of squares have $n-k-1$ degrees of freedom. 
+
+## Multiple linear regression
+With 2 independent variables, the least squares solution spans a plane in 3-dimensional space
+
+```{r}
+#| echo: false
+#| eval: true
+
+data(iris)
+# Data, linear regression with two explanatory variables
+wh <- iris$Species != "setosa"
+x  <- iris$Sepal.Width[wh]
+y  <- iris$Sepal.Length[wh]
+z  <- iris$Petal.Width[wh]
+df <- data.frame(x, y, z)
+LM <- lm(y ~ x + z, df)
+
+# scatterplot
+s3d <- scatterplot3d(x, z, y, pch = 19, type = "p", color = "darkgrey",
+                     main = "Regression Plane", grid = TRUE, box = FALSE,  
+                     mar = c(2.5, 2.5, 2, 1.5), angle = 55,
+                     xlab="x1", ylab="x2")
+
+# compute locations of segments
+orig     <- s3d$xyz.convert(x, z, y)
+plane    <- s3d$xyz.convert(x, z, fitted(LM))
+i.negpos <- 1 + (resid(LM) > 0) # which residuals are above the plane?
+
+# draw residual distances to regression plane
+segments(orig$x, orig$y, plane$x, plane$y, col = "red", lty = c(2, 1)[i.negpos], 
+         lwd = 1.5)
+
+# draw the regression plane
+s3d$plane3d(LM, draw_polygon = TRUE, draw_lines = TRUE, 
+            polygon_args = list(col = rgb(0.8, 0.8, 0.8, 0.8)))
+
+# redraw positive residuals and segments above the plane
+wh <- resid(LM) > 0
+segments(orig$x[wh], orig$y[wh], plane$x[wh], plane$y[wh], col = "red", lty = 1, lwd = 1.5)
+s3d$points3d(x[wh], z[wh], y[wh], pch = 19)
+
+
+```
+
+
+
+## What is linear about the model?
+The model is linear in the $\beta$-parameters, not in the $x$-variables!
+
+
+Through variable transformations we can model non-linear associations. e.g.:
+
+$$Y= \beta_0 + \beta_1 x_{1} + \beta_2 x_{1}^2 + \varepsilon$$
+becomes 
+$$Y= \beta_0 + \beta_1 x_{1} + \beta_2 x_{2} + \varepsilon$$
+with $x_{2}=x_{1}^2$
+
+
+## Example - quadratic association
+True model $E(Y|x)= 1 + 2 x_{1} + 0.8x_{1}^2$
+```{r}
+#| echo: false
+#| eval: true
+x<-1:100/25
+x_sq<-x^2
+Y<-1+2*x+0.8*x_sq+rnorm(0,2, n=100)
+plot(x, Y)
+reg<-lm(Y ~ x + x_sq)
+summary(reg)$coeff
+lines(x,fitted.values(reg), col="blue", lwd=1.5)
+
+```
+
+
+## Modelling objectives
+Common reasons for including multiple independent variables are: 
 
 * Risk factor modelling in analytic studies
     + Adjusting for confounding 
     + Mutual adjustment with multiple risk factors
-* Prediction modelling
+* Prediction modelling 
+* Estimating non-linear associations
 
 
-## What is linear about the linear model?
+## Modelling lung function
+Recall our regresion of $FEV_1$ on age.
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(fev1~age , data=data)))
+```
 
 
-## Matrix notation 
 
-Would require matrix notation
+## Including weight
+Let's additionally include body height: 
 
-## Estimation 
-Just to illustrate matrix notation
+$$FEV_{1i}= \beta_0 + \beta_1\cdot \text{age}_i + \beta_2 \cdot \text{height}_i + \varepsilon_i$$
 
-## Hat matrix 
-Hat matrix
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(fev1~age + height, data=data)))
+```
+
+Observations: 
+
+* The slope for 'age' is mow much smaller (0.090 l/Jahr)  
+* $R^2$ has increaset to 0.436.  
+
+## Interpretation of parameters
+Age and height are correlated, part of the increase with age can be attrubuted to height.  
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: "center"
+par(mai=c(.8,.8,0.1,0.1))
+plot(data$age, data$height, xlab="age", ylab="height")
+```
+
+## Interpretation of parameters
+According to the current model: 
+
+* Mean $FEV_1$ increases by $\hat{\beta}_1=$ 90 ml per year increase in age among children of the same height (adjusted for height).
+* Mean $FEV_1$ increases by $\hat{\beta}_2=$ 25 ml per cm increase in height among children of the same age (adjusted for age).
 
 
-## Example - building a model
-Model with age and height
+
+## F-Test in the output
+The F-test in the tests the null hypothesis that all slope parameters are simultaneously zero. 
+
+In our case: 
+
+$$H_0: \beta_1=\beta_2=0$$
+With a  P-value $<2\cdot10^{-16}$ the hypothesis can be clearly rejected.
 
 
-## Interpretation of $beta_2$
-Keeping the other var constant
+## ..including the variable sex
 
-## Interpretation of $beta_2$
-Correlation between height and weight
+```{r, echo=FALSE}
+my.summary(summary(lm(fev1~age + height + sex, data=data)))
+```
+ 
+Observations: 
+
+* The slope parameters for age and height haven't changed much.   
+* $R^2$ has slightly increased from 0.436 to 0.475   
+* The degrees of freedom is reduced by 1 for every added parameter.   
 
 
-## Multicollinearity 
-Correlation between height and weight
 
-## Effects of multicollinearity
+## Adjusted $R^2$
+$R^2$ can only increase when a new independent variable is added, regardless of whether the variable is truly informative (associated in the population) or not.
 
-## Example - Davis dataset
-model with weight on self-reported weight
+The adjusted $R^2$ takes into account the loss of degrees of freedom from adding a variable: 
+
+$$\text{adj. }R^2= 1-\frac{RSS/(n-p-1)}{TSS/(n-1)}$$
+
+The term $RSS/(n-p-1)$ tends to increase (and $\text{adj. }R^2$ decrease) when non-informative variables are added. 
+
+
+## ..including the variable sex
+
+```{r, echo=FALSE}
+my.summary(summary(lm(fev1~age + height + sex, data=data)))
+```
+ 
+Observations: 
+
+* The slope parameters for age and height haven't changed much.   
+* $R^2$ has slightly increased from 0.436 to 0.475   
+* The degrees of freedom is reduced by 1 for every added parameter.   
+
+
 
 
 ## Example - Davis dataset
@@ -581,38 +748,7 @@ Or include height2
 Combine with testing for linearity of assocation
 
 
-## Variance inflation factor
 
-
-## Remedies
-
-## Building a model cont'd
-includ sex
-
-## Adjusted $R^2$
-Reason Formula
-
-## Adjusted $R^2$
-Interpretation
-
-## Standard F-test
-tests simulataneously that all coeffs are zero
-
-## Building a model cont'd
-includ asthma history
-
-## Building a model cont'd
-include current symptoms 
-
-## Partial F-test for testing restrictions
-Idea and formula
-
-## model building cont'd 
-Test whether clinical variables history and symptoms important as a whole
-
-
-## Simply use anova comment 
-Test whether clinical variables history and symptoms important as a whole
 
 ## Residual analysis
 
@@ -634,6 +770,107 @@ par(mfrow=c(2,2)) # Change the panel layout to 2 x 2
 plot(fit)
 par(mfrow=c(1,1)) # Change back to 1 x 1
 
+
+
+## Multicollinearity
+
+Occurs when an independent variable can be predicted with high accuracy by a linear combination of the others.
+
+Possible consequences:  
+
+* Corresponding coefficients are estimated with low precision (large $SE$s).  
+* Estimated coefficients become sensitive to inclusion of particular variables often changing direction.  
+* The effects of correlated variables may counteract each other and become large in opposite directions.  
+    
+## Example - Davis dataset
+Measured vs self-reported height and weight in 88 men. Pearson correlation coefficients: 
+```{r}
+#| echo: false
+#| eval: true
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: "center"
+
+data(Davis)
+dat <- Davis[Davis$sex=="M", c("weight", "repwt", "height", "repht") ]
+pairs(dat)
+cor(dat[complete.cases(dat),])
+```
+
+## Example - Davis dataset
+How well does self-reported weight predict measured weight
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(weight~repwt , data=dat)))
+```
+
+## Example - Davis dataset
+
+What if we add measured height
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(weight~repwt + height, data=dat)))
+```
+
+.. and, at the risk redundancy, self-reported height:
+
+```{r}
+#| echo: false
+#| eval: true
+
+reg<-lm(weight~repwt + height + repht, data=dat)
+my.summary(summary(reg))
+```
+
+
+## Variance inflation factor
+
+In multiple linear regression the sampling variance ($SE_{\beta_i}^2$) of the parameter $\beta_i$ of a given variable $x_i$ can be written as:  
+
+$$SE_{\beta_i}^2=\frac{s^2}{(n-1)s_{x_i}^2}\cdot\frac{1}{1-R_i^2}$$  
+
+where $R_i^2$ is the $R^2$ from a linear regression of $x_i$ on all other independent variables.
+
+The term $\frac{1}{1-R_i^2}$ is the _variance inflaction factor_ (VIF).
+
+
+## Example - Davis dataset
+$VIF$s in our final model 
+
+```{r}
+#| echo: true
+#| eval: true
+library(car)
+reg<-lm(weight~repwt + height + repht, data=dat)
+vif(reg)
+```
+
+
+Note: 
+
+* High $VIF$ values does not imply that $SE$'s will be large
+* Large sample sizes, by reducing $SE$, mitigate effects of multicollinearity
+* However, $VIF$s are useful for identifying problematic variables
+
+
+## Dealing with multicollinearity
+When adding a new variable look out for: 
+
+* Increases in standard errors 
+* Changes in the magnitude/sign of slope parameters
+
+What can you do: 
+
+* Check correlations/$VIF$ to identify problem variables
+* Is one of the variables redundant; can it be excluded? (check $R^2$)
+* If not, can the variables be combined to single variable
+
+
+::: {.callout-note}
+Multicollinearty negatively affects parameter estimation but not prediction
+:::
 
 
 
