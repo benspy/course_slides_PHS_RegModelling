@@ -562,7 +562,8 @@ Where the  $\varepsilon_i$ are independently (_i. independence_), normally distr
 The conditional mean of  $Y_i$ given specific values of the independent variables $x_1, x_2, \dots, x_k$ is thus: 
 
 $$\mu_{y|\mathbf{x_1, x_2,\dots,x_k}}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
-We obtain the $k+1$ $\beta$-parameters by least squares estimation. The formulas for the estimates and their standard errors are omitted as this would require matrix notation. The residual sum of squares have $n-k-1$ degrees of freedom. 
+We obtain the $k+1$ $\beta$-parameters by least squares estimation. The residual sum of squares have $n-k-1$ degrees of freedom. 
+
 
 ## Multiple linear regression
 With 2 independent variables, the least squares solution spans a plane in 3-dimensional space
@@ -608,6 +609,21 @@ s3d$points3d(x[wh], z[wh], y[wh], pch = 19)
 ```
 
 
+## The model in matrix notation
+$$\mathbf {y} =\mathbf {X} {\boldsymbol {\beta }}+{\boldsymbol {\varepsilon }}$$
+where 
+$\mathbf{y} =\begin{bmatrix}y_{1}\\y_{2}\\\vdots \\y_{n}\end{bmatrix},\quad \mathbf{X} ={\begin{bmatrix}1&x_{11}&\cdots &x_{1p}\\1&x_{21}&\cdots &x_{2p}\\\vdots &\vdots &\ddots &\vdots \\1&x_{n1}&\cdots &x_{np}\end{bmatrix}},\quad {\boldsymbol{\beta }}={\begin{bmatrix}\beta _{0}\\\beta _{1}\\\beta _{2}\\\vdots \\\beta _{p}\end{bmatrix}},\quad {\boldsymbol {\varepsilon }}={\begin{bmatrix}\varepsilon _{1}\\\varepsilon _{2}\\\vdots \\\varepsilon _{n}\end{bmatrix}}.$
+
+## The model in matrix notation
+Parameter estimates:
+
+$\boldsymbol{\hat{\beta }}=\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf {X} ^{\mathsf {T}}\mathbf{y}$
+
+Estimated conditional mean of independent variable:
+
+$\mathbf{\hat{y}}=\mathbf {X}\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf {X} ^{\mathsf{T}}\mathbf {y} =\mathbf {H} \mathbf {y}$
+
+Here $\mathbf{H}=\mathbf {X}\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf{X} ^{\mathsf{T}}$ is the so-called _hat matrix_ (needed later on to extract leverages).
 
 ## What is linear about the model?
 The model is linear in the $\beta$-parameters, not in the $x$-variables!
@@ -656,9 +672,19 @@ my.summary(summary(lm(fev1~age , data=data)))
 ```
 
 
+## Including weight
+Let's first look at the scatterplots
+```{r}
+#| echo: true
+#| eval: true
+#| fig-width: 4
+#| fig-height: 4
+#| fig-align: "center"
+pairs(data[,c("fev1", "age", "height")])
+```
 
 ## Including weight
-Let's additionally include body height: 
+Include body height as additional dependent variable: 
 
 $$FEV_{1i}= \beta_0 + \beta_1\cdot \text{age}_i + \beta_2 \cdot \text{height}_i + \varepsilon_i$$
 
@@ -676,21 +702,11 @@ Observations:
 ## Interpretation of parameters
 Age and height are correlated, part of the increase with age can be attrubuted to height.  
 
-```{r}
-#| echo: false
-#| eval: true
-#| fig-width: 4
-#| fig-height: 4
-#| fig-align: "center"
-par(mai=c(.8,.8,0.1,0.1))
-plot(data$age, data$height, xlab="age", ylab="height")
-```
-
-## Interpretation of parameters
 According to the current model: 
 
 * Mean $FEV_1$ increases by $\hat{\beta}_1=$ 90 ml per year increase in age among children of the same height (adjusted for height).
 * Mean $FEV_1$ increases by $\hat{\beta}_2=$ 25 ml per cm increase in height among children of the same age (adjusted for age).
+
 
 
 
@@ -705,15 +721,17 @@ With a  P-value $<2\cdot10^{-16}$ the hypothesis can be clearly rejected.
 
 ## ..including the variable sex
 
-```{r, echo=FALSE}
+```{r}
+#| echo: false
+#| eval: true
 my.summary(summary(lm(fev1~age + height + sex, data=data)))
 ```
  
 Observations: 
 
 * The slope parameters for age and height haven't changed much.   
-* $R^2$ has slightly increased from 0.436 to 0.475   
-* The degrees of freedom is reduced by 1 for every added parameter.   
+* $R^2$ has slightly increased from 0.436 to 0.475.  
+* The degrees of freedom is reduced by 1.   
 
 
 
@@ -727,50 +745,200 @@ $$\text{adj. }R^2= 1-\frac{RSS/(n-p-1)}{TSS/(n-1)}$$
 The term $RSS/(n-p-1)$ tends to increase (and $\text{adj. }R^2$ decrease) when non-informative variables are added. 
 
 
-## ..including the variable sex
+## ..including asthma history
 
-```{r, echo=FALSE}
-my.summary(summary(lm(fev1~age + height + sex, data=data)))
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(fev1~age + height + sex + asthma_hist, data=data)))
 ```
  
 Observations: 
 
-* The slope parameters for age and height haven't changed much.   
-* $R^2$ has slightly increased from 0.436 to 0.475   
-* The degrees of freedom is reduced by 1 for every added parameter.   
+* Little change in the slopes of previously included variables.
+* Very slight increase in $\text{adj. } R^2$ from 0.473 to 0.479.  
+* Degrees of freedom is reduced by 2.   
 
 
 
+## ..including current symptoms
 
-## Example - Davis dataset
-See if you have weight
-Or include height2 
-Combine with testing for linearity of assocation
+```{r}
+#| echo: false
+#| eval: true
+my.summary(summary(lm(fev1~age + height + sex + asthma_hist + respsymptoms, data=data)))
+```
+ 
+Observations: 
+
+* Model fit $\text{adj. } R^2$ has not improved.  
+* There is, however, strong evidence for a difference between those with and without current symptoms (P<0.001)
+
+## Global vs. partial F-test
+The partial $F$-test tests the null-hypothesis that the $\beta$-parameters of the multiple selected variables are zero. 
+
+1. Fit the full model and store the residual stum of squares ($RSS$)
+2. Fit the restricted model without the variables ($RSS_0$)
+
+The test statistic $F=\frac{(\text{RSS}_0-\text{RSS})/k}{\text{RSS}/(n-p-1)}$ follows an $F$-distrubion with $k$ and $n-p-1$ df. Here, $k$ is the number of restricted $\beta$-parameters (omitted in 2.) 
+
+- _Global $F$-Test_: $k=p$ (standard output)
+
+- _Partial $F$-Test_: $1\leq k<p$ (Equivalent to $t$-test when $k=1$ )
+
+## Partial F-test in practice
+Let's test for differences by asthma history ($k=2$ restrictions)
+```{r}
+#| echo: true
+#| eval: true
+mod_full <- lm(fev1~age + height + sex + asthma_hist + respsymptoms, data=data)
+mod_restricted <- lm(fev1~age + height + sex + respsymptoms, data=data)
+anova(mod_full, mod_restricted)
+```
+* Evidence for differences by asthma history, even when adjusted for other variables including symptoms (P=0.01)
 
 
 
-
+## Partial F-test in practice
+Let's test the combined contribution of asthma history and symptoms ($k=3$ restrictions). 
+```{r}
+#| echo: true
+#| eval: true
+mod_full <- lm(fev1~age + height + sex + asthma_hist + respsymptoms, data=data)
+mod_restricted <- lm(fev1~age + height + sex, data=data)
+anova(mod_full, mod_restricted)
+```
+* Strong evidence for a combined contribution after adjusting for age, height, sex (P<0.0001)
+ 
 ## Residual analysis
+A closer look at residuals allows us to detect strong violations of model assumptions or the undue influence of single observations. 
 
-par(mfrow=c(2,2)) # Change the panel layout to 2 x 2
-plot(fit)
-par(mfrow=c(1,1)) # Change back to 1 x 1
+The command `plot(`_model name_`)` will show four residual plots: 
+
+1. Residuals vs. fitted values
+2. Q-Q plot
+3. Scale location plot
+4. Cook's distance plot
+5. Residuals vs. Levarage
+6. Cook's dist vs Lev./(1-Lev.)
+
+We will focus on 1,2,3,5 which are shown by default.
+
+## Plot 1: Residuals vs. fitted values
+Checking the _zero mean_ assumption: The residuals should have  mean zero (approximately) over the entire range of fitted values
+```{r}
+#| echo: true
+#| eval: true
+mod_final <- lm(fev1~age + height + sex + asthma_hist + respsymptoms, data=data)
+plot(mod_final, which=1)
+```
+## Standardizing residuals
+Residuals are estimates (of errors) and thus subject to sampling variation. 
+
+Their variance is not constant: $\text{var}(\hat{\varepsilon_i})=\sigma^2(1-h_{ii})$, where $h_{ii}$ is the $i$-th diagonal element of the hat matrix. 
+
+The _standardized_ (or _studentized_) residuals
+
+$$t_i=\frac{\hat{\varepsilon_i}}{\hat{\sigma}\sqrt{(1-h_{ii}}}$$
+will have constant variance of 1. 
+
+## Plot 2: Q-Q plot
+Checking the _normality_ assumption: The standardized residuals should follow (approximately) a standard normal distribution. The points in the Q-Q plot should align closely with the diagonal. 
+```{r}
+#| echo: true
+#| eval: true
+plot(mod_final, which=2)
+```
+
+## Misconceptions about normality
+1. The outcome must be normally distribution to run linear regression (or a t-test, or ANOVA)
+
+FALSE: The normality assumption applies only to the residuals. You need to first fit the model. 
+
+2. Violations of normality invalidates the model
+
+FALSE: The model is robust against violations of normality if sample size (more precisely the residual df) is reasonably large and there are not points with large leverage (see below)
+
+## Plot 3: Scale-location
+Checking the _homoscedasticity_ assumption: The square root of the standardized residuals should have constant mean over the range of fitted values. 
+```{r}
+#| echo: true
+#| eval: true
+plot(mod_final, which=3)
+```
 
 
-## Residuals versus fitted
+## Leverage
+The leverage of observation $i$ is given by  $h_{ii}$, the $i$-th diagonal element of the hat matrix. 
 
-par(mfrow=c(2,2)) # Change the panel layout to 2 x 2
-plot(fit)
-par(mfrow=c(1,1)) # Change back to 1 x 1
+$h_{ii}$ measures how far away the values of the independent variables if the observation are from those of other observations. 
+ 
+In simple linear regression:  $h_{ii}= \frac{1}{n} + \frac{(x_i-\bar{x})^2}{\sum_j(x_j-\bar{x})^2}$
+
+Observations with high leverage can have a strong influence on fitted model. 
+
+## Influence
+An observation with high leverage will influence the regression if it does not fit the general trend of the other observations
+```{r}
+#| echo: false
+#| eval: true
+
+set.seed(1234)
+x <- c(rnorm(20, mean=7, sd=2), 18)
+y <- 2+x+c(rnorm(20), 0.1)
+par(mfcol = c(1, 2))
+plot(x,y,xlim=c(0,20), ylim=c(0,22), main="Low influence")
+abline(lm(y~x), col="blue")
+points(x[21],y[21], col="red", pch=16)
+y[21] <- 10
+plot(x,y,xlim=c(0,20), ylim=c(0,22), main="High influence")
+abline(lm(y~x), col="blue")
+points(x[21],y[21], col="red", pch=16)
+```
 
 
-## Residuals versus fitted
+## Cook's distance
+A common measure of influence is _Cook's distance_: 
 
-par(mfrow=c(2,2)) # Change the panel layout to 2 x 2
-plot(fit)
-par(mfrow=c(1,1)) # Change back to 1 x 1
+$$D_i=\frac{\sum_j\left(\hat{y}_j-\hat{y}_{j(i)}\right)}{(p+1)\hat{\sigma}^2}$$
+Where the $\hat{y}_j$ and $\hat{y}_{j(i)}$ are the residuals from a model with and without observation $i$ respectively. 
+
+Cook's distance can calculated directly from the standardized residual and leverage of observation $i$: 
+
+$$D_i=\frac{1}{p+1}\cdot t_i^2\cdot\frac{h_{ii}}{1-h_{ii}}$$
+
+## Plot 5: Residuals vs. Levarage
+Residuals with high influence, i.e. high leverage and large residual, will lie close to the right top or bottom corners
+```{r}
+#| echo: true
+#| eval: true
+plot(mod_final, which=5)
+```
+
+## Influence
+For our toy example: 
+```{r}
+#| echo: false
+#| eval: true
+
+set.seed(1234)
+x <- c(rnorm(20, mean=7, sd=2), 18)
+y <- 2+x+c(rnorm(20), 0.1)
 
 
+par(mfcol = c(2, 2), mai=c(0.7,0.7,0.2, 0.5))
+plot(x,y,xlim=c(0,20), ylim=c(0,22), main="Low influence")
+mod<-lm(y~x)
+abline(mod, col="blue")
+points(x[21],y[21], col="red", pch=16)
+plot(mod, which=5)
+y[21] <- 10
+plot(x,y,xlim=c(0,20), ylim=c(0,22), main="High influence")
+mod<-lm(y~x)
+abline(mod, col="blue")
+points(x[21],y[21], col="red", pch=16)
+plot(mod, which=5)
+````
 
 ## Multicollinearity
 
@@ -871,6 +1039,9 @@ What can you do:
 ::: {.callout-note}
 Multicollinearty negatively affects parameter estimation but not prediction
 :::
+
+
+
 
 
 
