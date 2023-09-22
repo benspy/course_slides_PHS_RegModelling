@@ -13,6 +13,10 @@ self-contained: true
 library(tidyverse)
 library(ggplot2)
 library(knitr)
+library(latex2exp)
+library(fastDummies)
+library(scatterplot3d)
+library(car)
 ```
 
 ## Daily schedule
@@ -39,15 +43,15 @@ library(knitr)
 |         | PM     | Exercises, QA, wrap-up                                 |
 
 ## This morning's topics
+
 |                                                                                    |
 |------------------------------------------------------------------------|
 | **Simple linear regression**                                                       |
-| Refresher: p-values, confidence intervals, correlation, two sample $t$-test, ANOVA |
-| Fitting the simple linear regression model (least squares estimation)              |
-| Model assumptions (normality, misconceptions, transformations)                     |
-| Assessing model fit ($R^2$)                                                        |
+|	Least squares estimation
+|	Assessing model fit ($R^2$)
+| Model assumptions 
+| Standard errors and tests ($t$-test, $F$-test)                                               |
 
-# Refresher: <br> - *Inference about means* <br> - *Correlation*
 
 ## Regression is all about means
 
@@ -59,7 +63,6 @@ Examples:
 
 -   Expected value of systolic pressure depending on age and sex
 -   Seroprevalence of *Toxoplasma gondii* among dogs depending on source of drinking water (spring/river)
--   Incidence of repiratory tract infections among infants by season
 
 ## Some terminology
 
@@ -73,186 +76,309 @@ We distinguish:
 -   **Simple regression**: a single independant variable
 -   **Multiple/multivariable regression**: multiple independent variables - NOT to be confused with multi-variate regression (multiple dependent variables)
 
-
 ## Data types
-![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width=90% fig-align="left"}
 
-## Some types of regression models
-|Type of outcome |Type of model
-|--------|------------------
-|Continuous | Linear regression
-|Binary | Logistic regression
-|Ordinal | Ordinal logistic regression
-|Nominal | Multinomial logistic regression
-|Count | Poisson regression 
+![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width="90%" fig-align="left"}
 
+## Common regression models
 
-## What do we mean by 'expected value'
-The expected value $E(Y)$ of a random variable is the (usually unknown) true mean of the underlying population 
-
-We can think of it as the number that the sample mean 
-$$ \overline{x} \, =  \frac{1}{n}\sum_{i = 1}^{n} x_i \, = \, \frac{x_1 + \ldots + x_n}{n}$$
-would converge to as the sample size $n$ increases.
-
-## Measurung central tendency
-
-Sample mean 
-To compute the sample mean simply 
-
-*  Sum up all values    
-*  Divide by $n$   
-
-$$ \overline{x} \, =  \frac{1}{n}\sum_{i = 1}^{n} x_i \, = \, \frac{x_1 + \ldots + x_n}{n}$$
-
-Whats the mean of these values?  6,  8, 11,  3,  5,  6
+| **Scale**   | ***Examples***           | **Typical models**       |
+|-------------|--------------------------|--------------------------|
+| Continuous  | *BMI, blood pressure*    | Linear regression        |
+| Dichotomous | *Disease/death (yes/no)* | Logistic regression      |
+| Nominal     | *3 disease subtypes*     | Multinomial logist. reg. |
+| Ordinal     | *4 severity stages*      | Ordered logist. reg.     |
+| Count       | *Number of cases*        | Poisson regression       |
 
 
-## Inferences about the mean
+## Plasma volume and body weight
+This table contains data on body weight in kg and plasma volume in l in $n=8$ healthy men: 
 
-Relevant basic concepts and methods from basic statistics
-
--   Mean and standard deviation (SD) as measures of central tendency and spread
--   Population mean *expectation* vs. sample mean
--   Sampling distribution and standard error
--   The role of the $t$-distribution
--   Confidence intervals
--   Comparing means: two-sample $t$-test, ANOVA
+```{r, echo=FALSE}
+data<-read.table("data/plasvol.csv",header=TRUE,sep=";")
+#names(data)<-c("ID","Gewicht [kg]", "Plasmavolumen [l]")
+kable(data)
+``` 
 
 
 
-## Describing distributions -  Location and spread
-**Location:** Measures where on the x-axis an average value would lie (central tendency).  
+## Visualising the association
+Scatterplot of plasma volume against body weight
 
-**Spread:** Measures how widely values vary.
-
-![](pics/location_spread.jpeg)
-
-## Skewed and symmetric distributions
-
-The median will differ from the mean in the case of skewed distribution
-
-![ ](pics/skewed.jpeg)
-
-
-## Expected value of a random variable
-The *expected value* $\operatorname {E}(Y)$ of a random variable $Y$ is its "average value"
-
-It is calculated as a probability weighted average all the possible outcomes. For a discrete random variable that can take on $k$ values:
-
-$$\operatorname {E}(Y)=\sum_{i=1}^{k}y_ip_i$$
-where $p_i=P(Y=y_i)$ (probability mass function)
-
-For the outcome of a roll of a fair die: 
-$\operatorname {E} [Y]=1\cdot {\frac {1}{6}}+2\cdot {\frac {1}{6}}+3\cdot {\frac {1}{6}}+4\cdot {\frac {1}{6}}+5\cdot {\frac {1}{6}}+6\cdot {\frac {1}{6}}=3.5$
-
-
-
-
-## Population mean and variance
-In statistics, the expected value is often referred to as the *mean* or *population mean* of a random variable and denoted 
-
-$$\mu_Y=\operatorname {E}(Y)$$
-The *variance* of a random variable is a measure how widely it varies around its mean: 
-
-$$\sigma_Y^2=\text{Var}(Y)=\operatorname {E}\left[(Y-\mu_Y)^2\right]$$
-
-
-
-
-
-
-
-## Sample mean 
-The sample mean "balances out" the data: 
-
-$$\sum_{i=1}^{n}(x_i- \overline{x})=0$$
-\bcenter ![ ](pics/waage_mittelwert.jpg){ width=100% } \ecenter
-
-
-## Measuring dispersion
-
-Simple idea: Let's take the average of the deviations from the mean. But these sum to zero. 
-
-So let's take the absolute deviations, resulting in the mean absolute deviation (MAD):
-$$ \frac{1}{n} \sum_{i = 1}^n\big|x_i - \overline{x}|$$
-
-... or the squared deviations, resulting in the mean sum of squares: 
-$$\frac{1}{n } \sum_{i = 1}^n\big(x_i - \overline{x})^2$$
-
-## Sample variance
-
-The latter is more commonly used and is related to the concept of variance in probability theory. 
-
-**Sample variance**:
-
-$$s^2  =  \frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2$$
-
-alternative notation: $s^2$, $s_x^2$, $Var$, $Var_x$, $VAR$
-
-
-
-## Sample standard deviation
-To get back to the original scale of the variable x we need to take the square root.
-
-**Standard deviation**
-
-$$s=\sqrt{s^2}=\sqrt{\frac{1}{n - 1} \sum_{i = 1}^n\big(x_i - \overline{x})^2}$$
-
-Alternative notation: $s_x$, $\text{SD}$, $\text{SD}_x$
-
-
-## Why divide by $n-1$?
-
-The sample mean is closer to the data points than the true mean would be. 
-
-```{r, echo=FALSE, fig.width=6, fig.height=2.5, fig.align="center"}
-set.seed(123)
-dat <-data.frame(Stichprobe=rep(1:10,3),x=rnorm(30))
-par(mai = c(1, 1, 0, 0))
-plot(dat$Stichprobe,dat$x, col="blue", xlab="Sample", ylab="x", ylim=c(-2.1,2.1), xaxt="n", bty="n")
-axis(1, at = 1:10)
-points(1:10,tapply(dat$x,as.factor(dat$Stichprobe), mean), pch=2,col="red")
-abline(h=0,lty=2,col="red")
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
 ```
 
-The mean sum of squares underestimates the true variance. Dividing by $n-1$ (*degrees of freedom*) corrects for the bias.
 
-## Degrees of freedom (df)
+## Fitting a straight line 
+How can we fint the best fitting straight line?  
 
-* Relative to the true mean $\mu$ all n deviations $(x_{i}-\mu)$ are free to vary during sampling ($\text{df}=n$).
+_Idea_: Lets view $y_i$ ias the sum of a linear function of $x_i$ and a error term $\varepsilon_i$
 
-* Relative to the sample mean $\overline{x}$ only $n-1$ deviations $(x_{i}-\overline{x})$ are free to vary ($\text{df}=n-1$). 
+$$y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
+Now lets find $\beta_0$ and $\beta_1$ such that the error terms become small. 
 
-We "use up"" one df by calculating $\overline{x}$. More generally, one df is lost for every fitted parameter used to calculate the mean 
-(relevant in regression modelling). 
+## Least squares estimation (LSE)
+In LSE the estimates $\beta_0$ and  $\beta_1$ are obtained by minimizing the *residual sum of squares*
+
+$$RSS= \sum_{i=1}^n(y_i -\beta_0 + \beta_1 x_i)^2$$
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8, mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(2.4,3.6),xlim=c(55,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+w<-c(55,75)
+v<-predict(reg,newdata=data.frame(w))
+lines(x=w,y=v)
+resy<-as.vector(rbind(reg$fitted.values,dat$v,NA))
+resx<-as.vector(rbind(dat$w,dat$w,NA))
+lines(resx,resy,col="blue", lwd=2)
+```
 
 
-## Population and samples
-
-![](pics/sampling_variation.jpg)
-
-
-## What's the problem?
-
-![](pics/sampling_variation.jpg){fig-width=50%}
-
-We never observe the full population, only 1 sample. Any inference about the population is subject to error.
-
-**Sampling variation**: Chance of variation between samples.
-
-**Sampling distribution**: The distribution of a statistic across different samples.
+## Least squares estimation (LSE)
+This results in the following estimators: 
 
 
-## Accuracy and precision
+$$\hat{\beta_1}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sum_{i=1}^n(x_i-\overline{x})^2}$$
 
-Properties of good estimators: 
+$$\hat{\beta_0}=\overline{y}-\hat{\beta_1}\overline{x}$$
 
-* **Precision**: Low variance
-* **Accuracy**: Low bias
+The second equation can be written as $\overline{y}=\hat{\beta_0}+\hat{\beta_1}\overline{x}$ meaning that the regression line goes through the point given by $\overline{x}$ und $\overline{y}$.
 
-![[Source: https://doi.org/10.3390/app11052191](https://www.mdpi.com/2076-3417/11/5/2191)](ics/bias_precision.png)
 
-## First get an overview of the dataset
+## Example plasma volume  
+In our example we have: $\hat{\beta}_0=$ `r round(reg$coefficients[1],4)` und $\hat{\beta}_1=$ `r round(reg$coefficients[2],4)`
+
+```{r}
+#| echo: false
+#| eval: true
+
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", 
+     ylim=c(2.4,3.6),xlim=c(55,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+# w<-c(0,75)
+# v<-predict(reg,newdata=data.frame(w))
+# lines(x=w,y=v)
+# lines(c(0,0),c(0,reg$coefficients[1]),,col="red", lwd=2)
+#abline(h=0,lty=2, lwd=1.5)
+# abline(h=reg$coefficients[1],lty=2, lwd=1.5)
+abline(reg, lwd=1.5)
+abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+abline(v=mean(dat$w),lty=2, lwd=1.5, col="blue")
+# lines(c(mean(dat$w),mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]+reg$coefficients[2]*mean(dat$w)),col="red", lwd=2)
+lines(c(0,mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]),col="blue", lwd=2)
+text(55,mean(dat$v),lab=expression(bar("y")), col="blue", pos=3)
+text(mean(dat$w),2.4,lab=expression(bar("x")), col="blue", pos=4)
+text(72,3.3,lab=expression(hat("y")==0.0857+0.0436~"x"), pos=3)
+# text(0,0,lab=expression(hat(beta)[0]), col="red", pos=3)
+# text(mean(dat$w),2,lab=expression(hat(beta)[1]*bar("x")), col="red", pos=4)
+```
+
+## Interpretation von $\beta_0$   
+$\hat{\beta}_0$ is the estimated value of $y$ for $x=0$ and is referred to as **constant** or **intercept**. 
+
+```{r}
+#| echo: false
+#| eval: true
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(data[,2],data[,3],bty="n",xlab="Gewicht [kg]" ,ylab="Plasmavolumen [l]", ylim=c(0,3.6),xlim=c(0,75))
+dat<-data[,2:3]
+names(dat)<-c("w","v")
+reg<-lm(v~w, data=dat)
+abline(reg, lwd=1.5)
+lines(c(0,0),c(0,reg$coefficients[1]),,col="red", lwd=2)
+abline(h=0,lty=2, lwd=1.5)
+abline(h=reg$coefficients[1],lty=2, lwd=1.5)
+# abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+# abline(v=mean(dat$w),lty=2, lwd=1.5, col="blue")
+# lines(c(mean(dat$w),mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]+reg$coefficients[2]*mean(dat$w)),col="red", lwd=2)
+# lines(c(0,mean(dat$w)),c(reg$coefficients[1],reg$coefficients[1]),col="blue", lwd=2)
+# text(5,2.55,lab=expression(bar("y")=="3.00"), col="blue", pos=3)
+# text(62,0.2,lab=expression(bar("x")=="66.88"), col="blue", pos=4)
+text(0,0,lab=expression(hat(beta)[0]), col="red", pos=3)
+# text(mean(dat$w),2,lab=expression(hat(beta)[1]*bar("x")), col="red", pos=4)
+```
+
+
+## Centering independent variables
+
+Often  $x=0$ has no practival meaning and lies outside the range of observed data.  
+
+By first centering then independent variable $\tilde{x}=x-\bar{x}$ and fitting the line 
+
+$$y_i= \beta_0 + \beta_1 \tilde{x}_i + \varepsilon_i$$
+the new intercept $\hat{\beta}_0$ estimates $y$ for $x=\bar{x}$. The slope $\hat{\beta}_1$ is not affected. 
+
+
+## Example plasma volume  
+```{r}
+#| echo: false
+#| eval: true
+dat$wc<-dat$w-mean(dat$w)
+reg<-lm(v~wc, data=dat)
+```
+
+Centering body weight we get $\hat{\beta}_0=$ `r round(reg$coefficients[1],3)` und $\hat{\beta}_1=$ `r round(reg$coefficients[2],4)`
+
+Estimated plasma volume in men of average weight is `r round(reg$coefficients[1],3)` l. 
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-height: 6
+#| fig-width: 10
+par(cex=1.8,mai=c(2,1.5,0.5,0.5))
+plot(dat$wc,dat$v,bty="n",xlab="Centered body weight [kg]" ,ylab="Plasma volume [l]", xlim=c(-10,10),ylim=c(0,3.6))
+abline(reg, lwd=1.5)
+abline(h=0,lty=2, lwd=1.5)
+abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
+abline(v=mean(dat$wc),lty=2, lwd=1.5, col="blue")
+lines(c(mean(dat$wc),mean(dat$wc)),c(0,reg$coefficients[1]),col="red", lwd=2)
+text(0,1.5,lab=expression(hat(beta)[0]), col="red", pos=4)
+```
+
+
+## Interpretation von $\beta_1$  
+
+$\hat{\beta}_1$ is the estimated change in $y$ if $x$ increses by 1 unit. It is referred to as  **slope**. IWe estimate and increase in plasma volume by `r round(reg$coefficients[2],4)` l (`r round(reg$coefficients[2]*1000,1)`ml) per kg higher weight.
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-height: 6
+#| fig-width: 10
+par(cex=1.8,mai=c(2,1.5,0.1,0.5))
+plot(dat$wc,dat$v,bty="n",xlab="Gewicht zentriert [kg]" ,ylab="Plasmavolumen [l]", xlim=c(-5,5),ylim=c(2.5,3.5))
+abline(reg, lwd=1.5)
+lines(c(0,1),c(mean(dat$v),mean(dat$v)),col="blue", lwd=2)
+lines(c(1,1),c(mean(dat$v),mean(dat$v)+reg$coefficients[2]),col="red", lwd=2)
+text(1,3,lab=expression(hat(beta)[1]), col="red", pos=4)
+```
+
+## Relationship between $\hat{\beta_1}$ and $r_{x,y}$
+The regression slope is related to the Pearson correlation coefficient by
+$$\hat{\beta_1}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sum_{i=1}^n(x_i-\overline{x})^2}=\frac{s_y}{s_x}r_{x,y}$$
+
+The slope measures differences in units of $y$ per units of $x$ (in our example l/kg). 
+
+The correlation coefficient is unitless and ranges from -1 to 1.
+
+
+## What does the model explain?
+\bcenter ![ ](pics/abc.png) \ecenter
+
+
+
+## What does the model explain?
+For a given observation $y_i$ let's define:   
+
+$$
+\begin{aligned}
+ a &:=  (y_i-\overline{y}) &= \text{"Total" deviation} \\
+ b &:= (y_i-\hat{y}_i)  &= \text{"Unexplained" deviation (residual)} \\
+ c &:= (\hat{y}_i-\overline{y})  &= \text{"Explained" deviation}
+\end{aligned}
+$$  
+
+Then: $(y_i-\overline{y})=(y_i-\hat{y}_i+\hat{y}_i-\overline{y})=(y_i-\hat{y}_i)+(\hat{y}_i-\overline{y})$   
+
+$$a=b+c$$   
+
+
+
+## Decomposing the sum of squares
+
+Now squaring both sides of the equation  
+
+$(y_i-\overline{y})^2=(y_i-\hat{y}_i)^2+(\hat{y}_i-\overline{y})^2+2 (y_i-\hat{y}_i)(\hat{y}_i-\overline{y})$   
+
+and summing over all $n$ points
+
+$\sum_{i=1}^n(y_i-\overline{y})^2=\sum_{i=1}^n(y_i-\hat{y}_i)^2+\sum_{i=1}^n(\hat{y}_i-\overline{y})^2+0$   
+
+The cross-products sum to zero. 
+
+This is called the "fundamental equation of regression analysis"
+
+
+$$
+\begin{aligned}
+  &\sum_{i=1}^n(y_i-\overline{y})^2& &=& &\sum_{i=1}^n(y_i-\hat{y}_i)^2& &+& &\sum_{i=1}^n(\hat{y}_i-\overline{y})^2 \\
+  &\text{Total SS}&  &=& &\text{Residual SS}&  &+& &\text{Explained SS} \\
+  &\text{TSS}&  &=& &\text{RSS}&  &+& &\text{ESS}
+\end{aligned}
+$$  
+
+## Coefficient of determination $R^2$
+
+The __coefficient of determination__ $R^2$ measures the proportion of variation in $Y$ that is explained by the regression model: 
+$$R^2=\frac{ESS}{TSS}=1-\frac{RSS}{TSS}$$  
+
+In simple linear regression $R^2=r_{x,y}^2$  (hence the notation).
+
+## Example plasma volume
+Verify the relationships between $r_{v,w}$, $\hat{\beta}_1$, and  $R^2$
+
+```{r}
+#| echo: true
+#| eval: true
+
+# standard deviations of volume and weight
+sd(dat$v)
+sd(dat$w)
+
+# Pearson correlation coefficient
+cor(dat$v, dat$w)
+
+```
+
+
+## Example plasma volume
+Verify the relationships between $r_{v,w}$, $\hat{\beta}_1$, and  $R^2$
+
+```{r}
+#| echo: true
+#| eval: true
+
+# Linear regression of volume on weight
+reg<-lm(v~w, data=dat)
+summary(reg)
+
+```
+
+## Anscombe's quartet
+Don't be misled by numbers, visualize your data!
+Here four datasets with identical (up to 2 decimal places) $\hat{\beta}_0$, $\hat{\beta}_1$, $r_{x,y}$, and  $R^2$
+
+![Wikipedia User:Schutz CC BY-SA 3.0](pics/Anscombe.svg){width=60%}
+
+## Model assumptions
+Given a value $x_i$ of the independent variable, we assume that the dependent variable $Y_i$ is distributed as:
+
+$$Y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
+
+Where the $\varepsilon_i$ are independently (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
+
+The second assumption that the conditional mean of  $Y_i$ given $X_i= x_i$ is: 
+
+$$E(Y_|X=x)=\mu_{y|x}=\beta_0 + \beta_1 x$$
+
+
+
+
+
+## Peru lung function dataset
 
 Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
 
@@ -261,11 +387,11 @@ Peru lung function data (*perulung_ems.csv*): Lung function data und 636 childre
 #| eval: true
 library(tidyverse)
 data <- read_csv("data/perulung_ems.csv")
-str(data)
+head(data,10)
 ```
-## Make sure data types are correctly represented in R
 
-Read in again with $id$ as integer, and $sex$, and $respsymptoms$ as factors (categorical variables)
+## Some modifications to the data types
+Change $id$ to integer, and $sex$, and $respsymptoms$ to factors (categorical variables)
 
 ```{r}
 #| echo: true
@@ -273,107 +399,467 @@ Read in again with $id$ as integer, and $sex$, and $respsymptoms$ as factors (ca
 data<- data |> mutate(id=as.integer(id), 
                 sex = factor(sex, levels=c(0,1), labels=c("f","m")), 
                 respsymptoms=factor(respsymptoms, levels=c(0,1), labels=c("no","yes")), 
-                asthma_hist=factor(asthma_hist))
-data
+                asthma_hist=factor(asthma_hist, levels=c("never", "previous asthma", "current asthma"), labels=c("never", "previous asthma", "current asthma")))
+head(data,10)
+```
+
+## $FEV_1$ by age
+```{r}
+#| echo: false
+#| eval: true
+plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children")
+```
+
+## $FEV_1$ by age
+```{r}
+#| echo: false
+#| eval: true
+reg<-lm(fev1~age, data=data)
+sigma<-summary(reg)$sigma
+pred<-function(x){predict.lm(reg,data.frame(age=x))}
+
+plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
+lines(data$age,reg$fitted.values, col="blue")
+text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
+```
+
+## $FEV_1$ by age
+```{r}
+#| echo: false
+#| eval: true
+plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
+lines(data$age,reg$fitted.values, col="blue")
+text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
+lines(c(9,9),c(0,pred(9)))
+points(9,pred(9),pch=16, col="blue")
+```
+
+## $FEV_1$ by age
+```{r}
+#| echo: false
+#| eval: true
+plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
+lines(data$age,reg$fitted.values, col="blue")
+text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
+lines(c(9,9),c(0,pred(9)))
+grid<-(1:100)*7*sigma/100-3.5*sigma+pred(9)
+grid<-c(min(grid),grid, max(grid))
+polygon(x=9+0.2*dnorm(grid, mean=pred(9), sd=sigma), y=grid, col= adjustcolor( "blue", alpha.f = 0.4), border=NA)
 ```
 
 
 
-## Standard error of the mean
-
-## The normality assumption
-
-## The $t$-distubution
-
-## Confidence intervals for the mean
-
-## One-sample t-test
-
-## Comparing the means of two groups
-
-## Two-sample t-test
-
-## Interpreting the p-value
-
-## Cautonary not about $p<0.05$
-
-## Comparing means of multiple groups
-
-## ANOVA
-
-## ANOVA F-Test
-
-## Associations between two continueous variables
-
-Scatterplots with different associations
-
-## What do we mean by linear association?
-
-## Pearson's correlation coefficient
+## $FEV_1$ by age
+```{r}
+#| echo: false
+#| eval: true
+plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
+lines(data$age,reg$fitted.values, col="blue")
+text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
+for (x in seq(7.5,10,0.5)) {
+  grid<-(1:100)*7*sigma/100-3.5*sigma+pred(x)
+  grid<-c(min(grid),grid, max(grid))
+  polygon(x=x+0.2*dnorm(grid, mean=pred(x), sd=sigma), y=grid, col= adjustcolor( "blue", alpha.f = 0.4), border=NA)
+}
+```
 
 
+## R output of the regression
+
+```{r}
+#| echo: true
+#| eval: true
+mod_1<-lm(fev1~age, data=data)
+summary(mod_1)
+
+```
+
+## Extracting model results
+
+```{r}
+#| echo: true
+#| eval: true
+names(mod_1)
+mod_1$coefficients
+mod_1_sum<-summary(mod_1)
+names(mod_1_sum)
+mod_1_sum$coefficients
+```
 
 
-# The simple linear regression model
 
-## Linear models - what's in the name?
+## Estimating the error variance $\sigma^2$
+True error: $\varepsilon_i= y_i-\mu_{y|x_i}= y_i-\beta_0 + \beta_1 x_i$  
+Estimated 'error' (_residual_): $\hat{\varepsilon}_i=y_i-\hat{y}_i=y_i-\hat{\beta}_0 - \hat{\beta}_1 x$  
 
-$$E(Y)= \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots +\beta_pX__p$$
+We use the residual sum of squares (i.e. $RSS=\sum_{i=1}^n\hat{\varepsilon}_i^2$) to estimate $\sigma^2$: 
 
-## Fitting a straight line
+$$\hat{\sigma}^2=\frac{1}{n-2}\sum_{i=1}^n(y_i-\hat{y}_i)^2=\frac{1}{n-2}\cdot RSS$$
 
-## Regression equation
+Note: 
 
-## Meaning of coefficients
+* The denominator is given by the degrees of freedom of $RSS$
+* $\hat{\sigma}$ is referred as the residual standard deviation 
 
-## Regression equation
 
-Graph showing meaning ot $\beta_0$ and $\beta_1$
 
-## What we can't explain - Residuals
 
-Graph showing meaning residuals
+## Calculating $\hat{\sigma}$ from R output
+```{r}
+#| echo: true
+#| eval: true
+names(mod_1)
+# Calculated manually from residuals
+mod_1$residuals[1:10]
+mod_1$df.residual
+sqrt(sum(mod_1$residuals^2)/mod_1$df.residual)
+# Extracted directly from model summary
+mod_1_sum$sigma
 
-## Fitting the model
+```
 
-minimizing the sum of squares
 
-## OLS Estimators
 
-## Estimating residual variance
+## Standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$
+The standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$ depends on the standard deviation of the errors $\sigma$:  
 
-## Standard errors for $\beta_0$ and $\beta_1$
+$$SE_{\beta_0}=\sigma\sqrt{\frac{1}{n}+\frac{\overline{x}^2}{\sum_{i=1}^n(x_i-\overline{x})^2}}$$  
+$$SE_{\beta_1}=\frac{\sigma}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}}$$  
 
-## Confidence interval for the slope
 
-## Test for an association
 
-## R output
+## The $t$-statistic
+Since $\sigma$ is unknown, we can plug in our estimate  $\hat{\sigma}$ (residual standard deviation) to estimate the standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$. 
 
-## Model assumptions
+Under repeated sampling and the model assumptions, the t-statistics $t_{\beta_0}=\frac{\hat{\beta}_0-\beta_0}{\hat{SE}_{\beta_0}}$ and $t_{\beta_1}=\frac{\hat{\beta}_1-\beta_1}{\hat{SE}_{\beta_1}}$ are _$t$-distributed with $n-2$ df_.
 
-## Misconseptions about normality
 
--   not the outcome but the residuals
--   for large samples not so relevant
--   t-test quite robust against departures
 
-## Variable transformations
 
-log transforms
 
-## How much of Y do we explain with X
+## Standard $t$-tests in the R output
 
-Total variation
+```{r}
+#| echo: true
+#| eval: true
 
-## Explained variation
+mod_1_sum$coefficients
 
-## Unexplained variation
+```
+The P-values in the output correspond to the null-hypotheses that the coefficients are zero. 
 
-## Coefficient of determination, $R^2$
+Let's check: under $H_0:\ \beta_1  =  0$  the t-statistic is $t_{\beta_1}=\frac{\hat{\beta}_1}{\hat{SE}_{\beta_1}}$ and we compare it to a $t$-distribution with $n-2=634$ df
 
-## $R^2$ and $r$
+```{r}
+#| echo: true
+#| eval: true
 
-## $r$ and $\beta_1$
+t<-mod_1_sum$coefficients[,1]/mod_1_sum$coefficients[,2]
+p<-2*pt(-abs(t),634)
+p
 
-## Ascombe's quintett
+```
+
+
+## 95\%-confidence intervals
+We can calculate 95\%-CIs for a coefficient \beta as: $\beta \mp t_{n-2, 0.975}\cdot \hat{SE}_{\beta}$
+
+The `confint` command provides an easy way to get 95%-CIs
+
+```{r}
+#| echo: true
+#| eval: true
+confint(mod_1)
+```
+
+These are easily verified 
+```{r}
+#| echo: true
+#| eval: true
+# Lower limits 
+mod_1_sum$coefficients[,1]- qt(0.975,634)* mod_1_sum$coefficients[,2]
+# Upper limits 
+mod_1_sum$coefficients[,1]+ qt(0.975,634)* mod_1_sum$coefficients[,2]
+```
+
+## Congratulations, you've reached a milestone!
+\bcenter ![ ](pics/fev_reg1_annoted.png) \ecenter
+
+## Interpreting the output
+
+* There is strong evidence that $FEV_1$ varies by age in children ($P<0.001$)
+* $FEV_1$ is estimated to increase by 218 ml per year as children grow older (Strictly speaking we should infer not longitudinal changes from a cross-sectional study)
+* We have 95% confidence that this value lies between 190ml and 247ml
+* Age differences account for about 1/4 of the variability on $FEV_1$ (More precisely the model accounts for...)
+
+
+## Dichotomous independent variables
+The independent variable can also be dichotomous (or categorical)
+
+Recall the Peru lung function dataset
+
+```{r}
+#| echo: true
+#| eval: true
+head(data, 7)
+``` 
+
+
+## $FEV_1$ by sex
+
+Boxplot of $\text{FEV}_1$ by sex. Boys appear to have a higher lung volume. 
+
+```{r}
+#| echo: true
+#| eval: true
+boxplot(fev1 ~ sex,data=data)
+```
+
+## Regression on $FEV_1$ on sex
+
+Let's regress  $\text{FEV}_1$ on the variable `sex` 
+
+```{r}
+#| echo: true
+#| eval: true
+reg<-lm(fev1~sex, data=data)
+summary(reg)$coefficients
+summary(reg)$r.squared
+confint(reg)
+```
+
+## Interpretation of $\beta_1$
+
+Model equation : $\hat{\text{FEV}}_1=1.538+0.119\cdot \text{sex}$  
+
+- Mean for girls:  $\hat{\text{FEV}}_1=1.538+0.119\cdot 0=1.538$ 
+
+- Mean for girls: $\hat{\text{FEV}}_1=1.538+0.119\cdot 1= 1.657$
+
+Thus $\hat{\beta}_1=0.119$ l $= 119$ ml is the estimated difference in mean $FEV_1$ between girls and boys. 
+
+The difference explains only a small fraction of the variation in $FEV_1$: $R^2=0.038$.
+
+
+## Equivalence with $t$-test
+
+This is mathematically equivalent with the two-sample $t$-test assuming equal variances: 
+
+```{r}
+#| echo: true
+#| eval: true
+t.test(fev1~sex, data=data, var.equal=T)
+```
+
+
+```{r}
+#| echo: false
+#| eval: true
+# Summary function that allows selection of which coefficients to include 
+# in the coefficient table
+# Works with summary.lm and summary.plm objects
+my.summary = function(x, digits=3) {
+
+  # Print a few summary elements that are common to both lm and plm model summary objects
+  #cat("Call\n")
+  #print(x$call)
+  #cat("\nResiduals\n")
+  #print(summary(x$residuals))
+  #cat("\n")
+  print(coef(x))
+
+  # Print elements unique to lm model summary objects
+  if("summary.lm" %in% class(x)) {
+    cat("\nResidual standard error:", round(x$sigma,3), "on", x$df[2], "degrees of freedom")
+    cat(paste(c("\nF-statistic:", " on"," and"), round(x$fstatistic,2), collapse=""),
+        "DF, p-value:",
+        format.pval(pf(x$fstatistic[1L], x$fstatistic[2L], x$fstatistic[3L], 
+                       lower.tail = FALSE), digits=digits))
+    cat("\nR squared", round(x$r.squared,3), " adj. R squared", round(x$adj.r.squared,3))
+
+  # Print elements unique to plm model summary objects  
+  } else if ("summary.plm" %in% class(x)) {
+    cat(paste("\nResidual Sum of Squares: ", signif(deviance(x), 
+                                                  digits), "\n", sep = ""))
+    fstat <- x$fstatistic
+    if (names(fstat$statistic) == "F") {
+      cat(paste("F-statistic: ", signif(fstat$statistic), " on ", 
+                fstat$parameter["df1"], " and ", fstat$parameter["df2"], 
+                " DF, p-value: ", format.pval(fstat$p.value, digits = digits), 
+                "\n", sep = ""))
+    }
+    else {
+      cat(paste("Chisq: ", signif(fstat$statistic), " on ", 
+                fstat$parameter, " DF, p-value: ", format.pval(fstat$p.value, 
+                                                               digits = digits), "\n", sep = ""))
+    }
+  }
+}
+
+```
+
+## Categorical independent variables
+Let's regress $FEV_1$ on the categorical variable asthma history
+
+\scriptsize
+```{r}
+#| echo: true
+#| eval: true
+reg<-lm(fev1~asthma_hist, data=data)
+summary(reg)
+
+```
+\normalsize
+
+## Dummy coding
+Internally, R includes factors (categorical variables) as dummy variables. 
+
+\scriptsize
+```{r}
+#| echo: false
+#| eval: true
+dummies<-dummy_cols(data$asthma_hist)
+names(dummies)<-c("asthma_hist", paste("D", 1:3, " (", gsub(".data_", "", names(dummies)[2:4]), ")", sep=""))
+head(dummies, 8)
+```
+
+The first factor level, here `never`, is used as reference category (not included in regression)
+
+## Interpretation
+$\hat{\text{FEV}}_1= \hat{\beta}_0 + \hat{\beta}_1 D1 +\hat{\beta}_2 D2 =  1.613 -0.042 \cdot D1 -0.111\cdot D2$
+
+Mean $\text{FEV}_1$ by category of asthma history: 
+
+* never: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 0 = 1.613$  
+* previous: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 1 + \hat{\beta}_2 \cdot 0 = 1.613 -0.042 = 1.571$ 
+* current: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 1 = 1.613 -0.111=1.503$
+
+Thus $\beta_1$ and $\beta_2$ represent differences in means of the corresponding catagories to the reference category. 
+
+The differences explain only a small fraction of the variation in $FEV_1$: $R^2=0.012$.
+
+
+## Decomposition of sum of squares
+
+As when deriving $R^2$ we can decompose the total sum of squares:  
+
+|Sum of squares | Label | Formula | df |  
+|--------|--------|--------|--------|  
+|Total | $\text{TSS}$ | $\sum_{i=1}^n\left(y_i-\overline{y}\right)^2$  | $n-1$|  
+|Explained | $\text{ESS}$ | $\sum_{i=1}^n\left(\hat{y}_i-\overline{y}\right)^2$  |  $p-1$|  
+|Residual | $\text{RSS}$ | $\sum_{i=1}^n\left(y_i-\hat{y}_i\right)^2$  | $n-p$|  
+
+We have $\text{TSS}=\text{ESS}+\text{RSS}$.  Here $p$ is the number of parameters in the model (in our case the number of groups)
+
+In our context, the $\hat{y}_i$ are the group means, $\text{ESS}$ the _between group_  and $\text{RSS}$ the _within group_ sum of squares.  
+
+## F-statistic in output
+The F-statistic in the standard output is ratio of the mean (division of $\text{SS}$ with $df$) explained to the mean residual sum of squares: 
+
+$$F=\frac{\frac{\text{ESS}}{p-1}}{\frac{\text{RSS}}{n-p}}$$
+Large values of $F$ mean that the model (here the group differences) explain a large fraction of the total variability.  
+
+## Standard $F$-test in output
+The $F$-test in the standard output tests whether the slope parameters of the model are all zero, i.e. the model does not contribute to explaining the dependent variable (global $F$). 
+
+In our case: $H_0: \beta_1=\beta_2=0$
+
+Under $H_0$ and model assumptions, the sampling $F$  follows an $F$-distribution with $p-1$ and $n-p$ degrees of freedom. 
+
+
+\scriptsize
+```{r}
+#| echo: true
+#| eval: true
+# obtaining the p-value
+f_stat<-summary(reg)$fstatistic
+f_stat
+p<-1-pf(f_stat[1], df1=f_stat[2], df2=f_stat[3])
+p
+
+```
+\normalsize
+
+## The $F$-distribution in our example
+
+```{r}
+#|echo: false
+#|eval: true
+#|out.width: 80%
+#|fig.align: "center"
+limitRange <- function(fun, min=-Inf, max=Inf) {
+  function(x) {
+    y <- fun(x)
+    y[x < min  |  x > max] <- NA
+    return(y)
+  }
+}
+
+dist<-function(x) {df(x, df1=f_stat[2], df2=f_stat[3])}
+
+f<-f_stat[1]
+
+ggplot() + 
+  stat_function(fun = dist , color="blue", n=1000) +  
+  geom_vline(xintercept = f, linetype="dashed", color ="blue") +
+  stat_function(fun = limitRange(dist, min=f), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
+  xlim(0,5) + ylab("Density") + xlab("F") + geom_text(aes(label="P=0.0195", x=4.5,y=0.2),size=5, color="blue") + 
+  ggtitle("F-distribution with 2 and 633 df") +
+  theme(text = element_text(size=15))
+```
+
+## Equivalence with ANOVA
+
+This test is equivalent with conventional ANOVA which tests for differences in means between multiple groups. 
+
+```{r}
+#| echo: true
+#| eval: true
+anova_1 <- aov( fev1~asthma_hist, data= data)
+summary(anova_1)
+```
+
+## Changing the reference category
+To change the reference category using the `relevel` function. 
+
+Using current asthma as the references category: 
+\scriptsize
+```{r}
+#| echo: true
+#| eval: true
+reg<-lm(fev1~relevel(asthma_hist, ref="current asthma"), data=data)
+```
+
+
+```{css echo=FALSE}
+.small-code{
+  font-size: 80%  
+}
+```
+
+
+This does not affect the $F$-test.
+
+<div class=small-code>
+```{r}
+#| echo: false
+#| eval: true
+
+x<-data.frame(summary(reg)$coef[,1])
+names(x)<-"Estimate"
+x
+x<-summary(reg)
+cat(paste(c("\nF-statistic:", " on"," and"), round(x$fstatistic,2), collapse=""),
+        "DF, p-value:",
+        format.pval(pf(x$fstatistic[1L], x$fstatistic[2L], x$fstatistic[3L], 
+                       lower.tail = FALSE), digits=3))
+
+```
+</div>
+
+
+
+
+## Summary
+
+

@@ -19,331 +19,7 @@ library(scatterplot3d)
 library(car)
 ```
 
-
-## Program overview
-|Day | Time | Topic
-|--- |----- | -------- 
-  |Mon| AM | Simple linear regression
-  |   | **PM** | **Multiple linear regression**
-|Tue| AM | Introduction to logistic regression
-|   | PM | Model building considerations and strategies
-|Wed| AM | Models for stratified designs and categorical outcomes
-|   | PM | Exercises, QA, wrap-up
-
-
-## This afternoon's topics
-|   
-|-------------------- 
-| **Multiple linear regression**
-|	Interpreting the coefficients
-|	Tests and model fit ($F$-test, adjusted $R^2$)
-|	Multicollinearity (variance inflation factor)
-|	Residual analysis (Residual plots, leverage, QQ-plot)
-
-
-## Model assumptions
-Given a value $x_i$ of the independent variable, we assume that the dependent variable $Y_i$ is distributed as:
-
-$$Y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
-
-Where the $\varepsilon_i$ are independently (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
-
-The second assumption that the conditional mean of  $Y_i$ given $X_i= x_i$ is: 
-
-$$E(Y_|X=x)=\mu_{y|x}=\beta_0 + \beta_1 x$$
-
-
-
-
-
-## Peru lung function dataset
-
-Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
-
-```{r}
-#| echo: true
-#| eval: true
-library(tidyverse)
-data <- read_csv("data/perulung_ems.csv")
-str(data)
-```
-
-
-## Peru lung function dataset
-
-Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
-
-```{r}
-#| echo: true
-#| eval: true
-library(tidyverse)
-data <- read_csv("data/perulung_ems.csv")
-head(data,10)
-```
-
-## Some modifications to the data types
-Change $id$ to integer, and $sex$, and $respsymptoms$ to factors (categorical variables)
-
-```{r}
-#| echo: true
-#| eval: true
-data<- data |> mutate(id=as.integer(id), 
-                sex = factor(sex, levels=c(0,1), labels=c("f","m")), 
-                respsymptoms=factor(respsymptoms, levels=c(0,1), labels=c("no","yes")), 
-                asthma_hist=factor(asthma_hist, levels=c("never", "previous asthma", "current asthma"), labels=c("never", "previous asthma", "current asthma")))
-head(data,10)
-```
-
-## $FEV_1$ by age
-```{r}
-#| echo: false
-#| eval: true
-plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children")
-```
-
-## $FEV_1$ by age
-```{r}
-#| echo: false
-#| eval: true
-reg<-lm(fev1~age, data=data)
-sigma<-summary(reg)$sigma
-pred<-function(x){predict.lm(reg,data.frame(age=x))}
-
-plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
-lines(data$age,reg$fitted.values, col="blue")
-text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
-```
-
-## $FEV_1$ by age
-```{r}
-#| echo: false
-#| eval: true
-plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
-lines(data$age,reg$fitted.values, col="blue")
-text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
-lines(c(9,9),c(0,pred(9)))
-points(9,pred(9),pch=16, col="blue")
-```
-
-## $FEV_1$ by age
-```{r}
-#| echo: false
-#| eval: true
-plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
-lines(data$age,reg$fitted.values, col="blue")
-text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
-lines(c(9,9),c(0,pred(9)))
-grid<-(1:100)*7*sigma/100-3.5*sigma+pred(9)
-grid<-c(min(grid),grid, max(grid))
-polygon(x=9+0.2*dnorm(grid, mean=pred(9), sd=sigma), y=grid, col= adjustcolor( "blue", alpha.f = 0.4), border=NA)
-```
-
-
-
-## $FEV_1$ by age
-```{r}
-#| echo: false
-#| eval: true
-plot(data$age,data$fev1, bty="n", cex.lab=1.2,cex.main=1.2, xlab="Age in years", ylab=expression("FEV"[1]~" in l"), main= "Lung function by age in 636 children", col="grey")
-lines(data$age,reg$fitted.values, col="blue")
-text(7.3,2.5, label=TeX("$E[FEV_1 | Age] = -0.368 + 0.219 \\cdot Age$"), col="blue", pos=4)
-for (x in seq(7.5,10,0.5)) {
-  grid<-(1:100)*7*sigma/100-3.5*sigma+pred(x)
-  grid<-c(min(grid),grid, max(grid))
-  polygon(x=x+0.2*dnorm(grid, mean=pred(x), sd=sigma), y=grid, col= adjustcolor( "blue", alpha.f = 0.4), border=NA)
-}
-```
-
-
-## R output of the regression
-
-```{r}
-#| echo: true
-#| eval: true
-mod_1<-lm(fev1~age, data=data)
-summary(mod_1)
-
-```
-
-## Extracting model results
-
-```{r}
-#| echo: true
-#| eval: true
-names(mod_1)
-mod_1$coefficients
-mod_1_sum<-summary(mod_1)
-names(mod_1_sum)
-mod_1_sum$coefficients
-```
-
-
-
-## Estimating the error variance $\sigma^2$
-True error: $\varepsilon_i= y_i-\mu_{y|x_i}= y_i-\beta_0 + \beta_1 x_i$  
-Estimated 'error' (_residual_): $\hat{\varepsilon}_i=y_i-\hat{y}_i=y_i-\hat{\beta}_0 - \hat{\beta}_1 x$  
-
-We use the residual sum of squares (i.e. $RSS=\sum_{i=1}^n\hat{\varepsilon}_i^2$) to estimate $\sigma^2$: 
-
-$$\hat{\sigma}^2=\frac{1}{n-2}\sum_{i=1}^n(y_i-\hat{y}_i)^2=\frac{1}{n-2}\cdot RSS$$
-
-Note: 
-
-* The denominator is given by the degrees of freedom of $RSS$
-* $\hat{\sigma}$ is referred as the residual standard deviation 
-
-
-
-
-## Calculating $\hat{\sigma}$ from R output
-```{r}
-#| echo: true
-#| eval: true
-names(mod_1)
-# Calculated manually from residuals
-mod_1$residuals[1:10]
-mod_1$df.residual
-sqrt(sum(mod_1$residuals^2)/mod_1$df.residual)
-# Extracted directly from model summary
-mod_1_sum$sigma
-
-```
-
-
-
-## Standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$
-The standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$ depends on the standard deviation of the errors $\sigma$:  
-
-$$SE_{\beta_0}=\sigma\sqrt{\frac{1}{n}+\frac{\overline{x}^2}{\sum_{i=1}^n(x_i-\overline{x})^2}}$$  
-$$SE_{\beta_1}=\frac{\sigma}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}}$$  
-
-
-
-## The $t$-statistic
-Since $\sigma$ is unknown, we can plug in our estimate  $\hat{\sigma}$ (residual standard deviation) to estimate the standard errors of $\hat{\beta}_0$ and $\hat{\beta}_1$. 
-
-Under repeated sampling and the model assumptions, the t-statistics $t_{\beta_0}=\frac{\hat{\beta}_0-\beta_0}{\hat{SE}_{\beta_0}}$ and $t_{\beta_1}=\frac{\hat{\beta}_1-\beta_1}{\hat{SE}_{\beta_1}}$ are _$t$-distributed with $n-2$ df_.
-
-
-
-
-
-## Standard $t$-tests in the R output
-
-```{r}
-#| echo: true
-#| eval: true
-
-mod_1_sum$coefficients
-
-```
-The P-values in the output correspond to the null-hypotheses that the coefficients are zero. 
-
-Let's check: under $H_0:\ \beta_1  =  0$  the t-statistic is $t_{\beta_1}=\frac{\hat{\beta}_1}{\hat{SE}_{\beta_1}}$ and we compare it to a $t$-distribution with $n-2=634$ df
-
-```{r}
-#| echo: true
-#| eval: true
-
-t<-mod_1_sum$coefficients[,1]/mod_1_sum$coefficients[,2]
-p<-2*pt(-abs(t),634)
-p
-
-```
-
-
-## 95\%-confidence intervals
-We can calculate 95\%-CIs for a coefficient \beta as: $\beta \mp t_{n-2, 0.975}\cdot \hat{SE}_{\beta}$
-
-The `confint` command provides an easy way to get 95%-CIs
-
-```{r}
-#| echo: true
-#| eval: true
-confint(mod_1)
-```
-
-These are easily verified 
-```{r}
-#| echo: true
-#| eval: true
-# Lower limits 
-mod_1_sum$coefficients[,1]- qt(0.975,634)* mod_1_sum$coefficients[,2]
-# Upper limits 
-mod_1_sum$coefficients[,1]+ qt(0.975,634)* mod_1_sum$coefficients[,2]
-```
-
-## Congratulations, you've reached a milestone!
-\bcenter ![ ](pics/fev_reg1_annoted.png) \ecenter
-
-## Interpreting the output
-
-* There is strong evidence that $FEV_1$ varies by age in children ($P<0.001$)
-* $FEV_1$ is estimated to increase by 218 ml per year as children grow older (Strictly speaking we should infer not longitudinal changes from a cross-sectional study)
-* We have 95% confidence that this value lies between 190ml and 247ml
-* Age differences account for about 1/4 of the variability on $FEV_1$ (More precisely the model accounts for...)
-
-
-## Dichotomous independent variables
-The independent variable can also be dichotomous (or categorical)
-
-Recall the Peru lung function dataset
-
-```{r}
-#| echo: true
-#| eval: true
-head(data, 7)
-``` 
-
-
-## $FEV_1$ by sex
-
-Boxplot of $\text{FEV}_1$ by sex. Boys appear to have a higher lung volume. 
-
-```{r}
-#| echo: true
-#| eval: true
-boxplot(fev1 ~ sex,data=data)
-```
-
-## Regression on $FEV_1$ on sex
-
-Let's regress  $\text{FEV}_1$ on the variable `sex` 
-
-```{r}
-#| echo: true
-#| eval: true
-reg<-lm(fev1~sex, data=data)
-summary(reg)$coefficients
-summary(reg)$r.squared
-confint(reg)
-```
-
-## Interpretation of $\beta_1$
-
-Model equation : $\hat{\text{FEV}}_1=1.538+0.119\cdot \text{sex}$  
-
-- Mean for girls:  $\hat{\text{FEV}}_1=1.538+0.119\cdot 0=1.538$ 
-
-- Mean for girls: $\hat{\text{FEV}}_1=1.538+0.119\cdot 1= 1.657$
-
-Thus $\hat{\beta}_1=0.119$ l $= 119$ ml is the estimated difference in mean $FEV_1$ between girls and boys. 
-
-The difference explains only a small fraction of the variation in $FEV_1$: $R^2=0.038$.
-
-
-## Equivalence with $t$-test
-
-This is mathematically equivalent with the two-sample $t$-test assuming equal variances: 
-
-```{r}
-#| echo: true
-#| eval: true
-t.test(fev1~sex, data=data, var.equal=T)
-```
-
-
-```{r}
+```{r functions}
 #| echo: false
 #| eval: true
 # Summary function that allows selection of which coefficients to include 
@@ -389,164 +65,26 @@ my.summary = function(x, digits=3) {
 
 ```
 
-## Categorical independent variables
-Let's regress $FEV_1$ on the categorical variable asthma history
 
-\scriptsize
-```{r}
-#| echo: true
-#| eval: true
-reg<-lm(fev1~asthma_hist, data=data)
-summary(reg)
-
-```
-\normalsize
-
-## Dummy coding
-Internally, R includes factors (categorical variables) as dummy variables. 
-
-\scriptsize
-```{r}
-#| echo: false
-#| eval: true
-dummies<-dummy_cols(data$asthma_hist)
-names(dummies)<-c("asthma_hist", paste("D", 1:3, " (", gsub(".data_", "", names(dummies)[2:4]), ")", sep=""))
-head(dummies, 8)
-```
-
-The first factor level, here `never`, is used as reference category (not included in regression)
-
-## Interpretation
-$\hat{\text{FEV}}_1= \hat{\beta}_0 + \hat{\beta}_1 D1 +\hat{\beta}_2 D2 =  1.613 -0.042 \cdot D1 -0.111\cdot D2$
-
-Mean $\text{FEV}_1$ by category of asthma history: 
-
-* never: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 0 = 1.613$  
-* previous: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 1 + \hat{\beta}_2 \cdot 0 = 1.613 -0.042 = 1.571$ 
-* current: $\hat{\beta}_0 + \hat{\beta}_1 \cdot 0 + \hat{\beta}_2 \cdot 1 = 1.613 -0.111=1.503$
-
-Thus $\beta_1$ and $\beta_2$ represent differences in means of the corresponding catagories to the reference category. 
-
-The differences explain only a small fraction of the variation in $FEV_1$: $R^2=0.012$.
+## Program overview
+|Day | Time | Topic
+|--- |----- | -------- 
+  |Mon| AM | Simple linear regression
+  |   | **PM** | **Multiple linear regression**
+|Tue| AM | Introduction to logistic regression
+|   | PM | Model building considerations and strategies
+|Wed| AM | Models for stratified designs and categorical outcomes
+|   | PM | Exercises, QA, wrap-up
 
 
-## Decomposition of sum of squares
-
-As when deriving $R^2$ we can decompose the total sum of squares:  
-
-|Sum of squares | Label | Formula | df |  
-|--------|--------|--------|--------|  
-|Total | $\text{TSS}$ | $\sum_{i=1}^n\left(y_i-\overline{y}\right)^2$  | $n-1$|  
-|Explained | $\text{ESS}$ | $\sum_{i=1}^n\left(\hat{y}_i-\overline{y}\right)^2$  |  $p-1$|  
-|Residual | $\text{RSS}$ | $\sum_{i=1}^n\left(y_i-\hat{y}_i\right)^2$  | $n-p$|  
-
-We have $\text{TSS}=\text{ESS}+\text{RSS}$.  Here $p$ is the number of parameters in the model (in our case the number of groups)
-
-In our context, the $\hat{y}_i$ are the group means, $\text{ESS}$ the _between group_  and $\text{RSS}$ the _within group_ sum of squares.  
-
-## F-statistic in output
-The F-statistic in the standard output is ratio of the mean (division of $\text{SS}$ with $df$) explained to the mean residual sum of squares: 
-
-$$F=\frac{\frac{\text{ESS}}{p-1}}{\frac{\text{RSS}}{n-p}}$$
-Large values of $F$ mean that the model (here the group differences) explain a large fraction of the total variability.  
-
-## Standard $F$-test in output
-The $F$-test in the standard output tests whether the slope parameters of the model are all zero, i.e. the model does not contribute to explaining the dependent variable (global $F$). 
-
-In our case: $H_0: \beta_1=\beta_2=0$
-
-Under $H_0$ and model assumptions, the sampling $F$  follows an $F$-distribution with $p-1$ and $n-p$ degrees of freedom. 
-
-
-\scriptsize
-```{r}
-#| echo: true
-#| eval: true
-# obtaining the p-value
-f_stat<-summary(reg)$fstatistic
-f_stat
-p<-1-pf(f_stat[1], df1=f_stat[2], df2=f_stat[3])
-p
-
-```
-\normalsize
-
-## The $F$-distribution in our example
-
-```{r}
-#|echo: false
-#|eval: true
-#|out.width: 80%
-#|fig.align: "center"
-limitRange <- function(fun, min=-Inf, max=Inf) {
-  function(x) {
-    y <- fun(x)
-    y[x < min  |  x > max] <- NA
-    return(y)
-  }
-}
-
-dist<-function(x) {df(x, df1=f_stat[2], df2=f_stat[3])}
-
-f<-f_stat[1]
-
-ggplot() + 
-  stat_function(fun = dist , color="blue", n=1000) +  
-  geom_vline(xintercept = f, linetype="dashed", color ="blue") +
-  stat_function(fun = limitRange(dist, min=f), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
-  xlim(0,5) + ylab("Density") + xlab("F") + geom_text(aes(label="P=0.0195", x=4.5,y=0.2),size=5, color="blue") + 
-  ggtitle("F-distribution with 2 and 633 df") +
-  theme(text = element_text(size=15))
-```
-
-## Equivalence with ANOVA
-
-This test is equivalent with conventional ANOVA which tests for differences in means between multiple groups. 
-
-```{r}
-#| echo: true
-#| eval: true
-anova_1 <- aov( fev1~asthma_hist, data= data)
-summary(anova_1)
-```
-
-## Changing the reference category
-To change the reference category using the `relevel` function. 
-
-Using current asthma as the references category: 
-\scriptsize
-```{r}
-#| echo: true
-#| eval: true
-reg<-lm(fev1~relevel(asthma_hist, ref="current asthma"), data=data)
-```
-
-
-```{css echo=FALSE}
-.small-code{
-  font-size: 80%  
-}
-```
-
-
-This does not affect the $F$-test.
-
-<div class=small-code>
-```{r}
-#| echo: false
-#| eval: true
-
-x<-data.frame(summary(reg)$coef[,1])
-names(x)<-"Estimate"
-x
-x<-summary(reg)
-cat(paste(c("\nF-statistic:", " on"," and"), round(x$fstatistic,2), collapse=""),
-        "DF, p-value:",
-        format.pval(pf(x$fstatistic[1L], x$fstatistic[2L], x$fstatistic[3L], 
-                       lower.tail = FALSE), digits=3))
-
-```
-</div>
+## This afternoon's topics
+|   
+|-------------------- 
+| **Multiple linear regression**
+|	Including multiple independent variables 
+|	Model selection ($F$-test, adjusted $R^2$)
+|	Residual analysis (Residual plots, leverage, QQ-plot)
+|	Multicollinearity (variance inflation factor)
 
 
 
@@ -665,6 +203,26 @@ Common reasons for including multiple independent variables are:
 
 ## Modelling lung function
 Recall our regresion of $FEV_1$ on age.
+
+
+
+## Peru lung function dataset
+
+Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
+
+```{r}
+#| echo: false
+#| eval: true
+library(tidyverse)
+data <- read_csv("data/perulung_ems.csv")
+data<- data |> mutate(id=as.integer(id), 
+                sex = factor(sex, levels=c(0,1), labels=c("f","m")), 
+                respsymptoms=factor(respsymptoms, levels=c(0,1), labels=c("no","yes")), 
+                asthma_hist=factor(asthma_hist, levels=c("never", "previous asthma", "current asthma"), labels=c("never", "previous asthma", "current asthma")))
+```
+
+
+
 ```{r}
 #| echo: false
 #| eval: true
@@ -855,9 +413,9 @@ plot(mod_final, which=2)
 
 FALSE: The normality assumption applies only to the residuals. You need to first fit the model. 
 
-2. Violations of normality invalidates the model
+2. Violation of normality invalidates the model
 
-FALSE: The model is robust against violations of normality if sample size (more precisely the residual df) is reasonably large and there are not points with large leverage (see below)
+FALSE: The model is robust against violations of normality if sample size (more precisely the residual df) is reasonably large and there are no points with large leverage (see below)
 
 ## Plot 3: Scale-location
 Checking the _homoscedasticity_ assumption: The square root of the standardized residuals should have constant mean over the range of fitted values. 
@@ -1041,7 +599,10 @@ Multicollinearty negatively affects parameter estimation but not prediction
 :::
 
 
+## Summary
 
+
+## Summary
 
 
 

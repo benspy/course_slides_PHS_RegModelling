@@ -31,14 +31,15 @@ Time | Activity
 |Day | Time | Content  
 |--- |--- | --------------------    
 |**Mon**| **AM** | **Simple linear regression**
-|||	Refresher: p-values, confidence intervals, correlation, two sample $t$-test, ANOVA
-|||	Fitting the simple linear regression model (least squares estimation) 
-|||	Assessing model (fit, $R^2$)
+|||	Least squares estimation
+|||	Assessing model fit ($R^2$)
+||| Model assumptions 
+||| Standard errors and tests ($t$-test, $F$-test)
 |   | **PM** | **Multiple linear regression**
-|||	The linear model (assumptions and misconceptions)
-|||	Tests and model fit ($F$-test, adjusted $R^2$)
-|||	Multicollinearity (variance inflation factor)
+|||	Including multiple independent variables 
+|||	Model selection ($F$-test, adjusted $R^2$)
 |||	Residual analysis (Residual plots, leverage, QQ-plot)
+|||	Multicollinearity (variance inflation factor)
 |**Tue**| **AM** | **Introduction to logistic regression**
 |||	Generalising the linear model (link functions, maximum likelihood estimation)
 |||	The logistic model (logistic link, binomial distribution)
