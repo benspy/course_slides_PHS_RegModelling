@@ -273,8 +273,8 @@ perulung %>%
 
 ## Including multiple independent variables
 
-We will now examine a dataset that includes the birth weight of children.\
-The data was collected in 1986 at Baystate Medical Center in Springfield, Massachusetts. More information on the varialbes you find [here](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/birthwt.html "Variable Info").
+We will now examine a data set that includes the birth weight of children.\
+The data was collected in 1986 at Baystate Medical Center in Springfield, Massachusetts. More information on the variables you find [here](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/birthwt.html "Variable Info").
 
 ```{r}
 #| code-fold: false
@@ -307,18 +307,12 @@ birthwt %>%
 
 #### Exercise 13
 
-Create multiple linear regression model with `birthweight` as the outcome. Include `mother_smokes`, `mother_age`, `mother_weight` and `hypertension`.\
-Save the summary and components in a tibble.
+Create a multiple linear regression model with `birthweight` as the outcome. Include `mother_smokes`, `mother_age`, `mother_weight` and `hypertension`.
 
 ```{r}
 model_full <- lm(formula = birthweight ~ mother_smokes + mother_age + mother_weight + hypertension, data = birthwt)
 summary(model_full)
 
-summary_model_2 <- model_full %>% 
-  tidy(conf.int = T)
-
-compontents_model_2 <- model_full %>% 
-  glance()
 ```
 
 ## F-test
