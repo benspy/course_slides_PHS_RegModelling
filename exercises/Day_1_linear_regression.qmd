@@ -17,6 +17,7 @@ format:
     code-fold: true
     theme: flatly
 ---
+
 ### Information
 
 These are the exercises for [Linear Regression in R](https://zuw.me/kurse/dt.php?kid=4476) course of the [Public Health Sciences Course Program](https://www.medizin.unibe.ch/studies/study_programs/phs_course_program) at the [University of Bern](https://www.unibe.ch/).
@@ -34,7 +35,8 @@ rm(list=ls())
 gc()
 
 # Load libraries
-library_names <- c("tidyverse", "knitr", "broom", "gridExtra", "ggpubr", "ggpmisc", "performance", "qqplotr", "patchwork", "see")
+library_names <- c("tidyverse", "knitr", "broom", "gridExtra", "ggpubr", "ggpmisc", 
+                   "performance", "qqplotr", "patchwork", "see", "MASS", "car")
 
 lapply(library_names, function(x) {
   if (!require(x, character.only = TRUE)) {
@@ -44,9 +46,7 @@ lapply(library_names, function(x) {
 })
 rm(library_names)
 
-options(scipen = 999)
 ```
-
 
 ```{r}
 #| code-fold: false
@@ -137,7 +137,7 @@ perulung %>%
 #### Exercise 4
 
 As we can see the points seem to be correlated.\
-To confirm that, calculate the pearson correlation of `fev1` and `height` with `cor()`. 
+To confirm that, calculate the pearson correlation of `fev1` and `height` with `cor()`.
 
 ```{r}
 cor(perulung$fev1, perulung$height, method = c("pearson")) 
@@ -180,7 +180,7 @@ summary(model_1)
 #### Exercise 7
 
 Given your fitted regression, what is the the predicted `fev1` of a child that is `113.8 cm` tall?\
-Try to calculate it with $\hat{b0}$ + $\hat{b1}$ or `predict()`. \
+Try to calculate it with $\hat{b0}$ + $\hat{b1}$ or `predict()`.\
 What happens if you predict with a value that was not originally in the range of the data frame?
 
 ```{r}
@@ -256,14 +256,14 @@ cor(perulung$fev1, perulung$height, method = c("pearson"))
 #### Exercise 12
 
 Use `ggplot()` to recreate the scatter plot from Exercise 3 and then add a regression line using `stat_poly_line`.\
-Try to add the regression equation and the adjusted R^2^ with `stat_poly_eq(). \
-Evaluate how "good" your regression line is. 
+Try to add the regression equation and the adjusted R^2^ with \`stat_poly_eq().\
+Evaluate how "good" your regression line is.
 
 ```{r}
 perulung %>% 
   ggplot(aes(x = height, y = fev1)) +
   geom_point(color = "steelblue") +
-  stat_poly_line(color = "orange") +
+  stat_poly_line(color = "orange", se = FALSE) +
   stat_poly_eq(use_label(c("eq"))) +
   stat_poly_eq(use_label(c("adj.R2")), label.y = 0.9) +
   theme_bw()
@@ -273,12 +273,45 @@ perulung %>%
 
 ## Including multiple independent variables
 
-#### Exercise 13
-
-Add these additional variables to our linear model: `age`, `sex`, `respsymptoms` and `asthma_hist`. Save the summary and components in a tibble.
+We will now examine a dataset that includes the birth weight of children.\
+The data was collected in 1986 at Baystate Medical Center in Springfield, Massachusetts. More information on the varialbes you find [here](https://stat.ethz.ch/R-manual/R-devel/library/MASS/html/birthwt.html "Variable Info").
 
 ```{r}
-model_full <- lm(formula = fev1 ~ age + height + sex + respsymptoms + asthma_hist, data = perulung)
+#| code-fold: false
+
+# Rename the columns to have more descriptive names
+birthwt <- MASS::birthwt %>%
+  rename(birthweight_below_2500 = low,
+         mother_age = age,
+         mother_weight = lwt,
+         ethnicity = race,
+         mother_smokes = smoke,
+         previous_prem_labor = ptl,
+         hypertension = ht,
+         uterine_irr = ui,
+         physician_visits = ftv,
+         birthweight = bwt)
+
+# Recode the factors
+birthwt <- birthwt %>% 
+  mutate(birthweight_below_2500 = factor(birthweight_below_2500, levels = c(0,1), labels=c("no","yes")),
+         ethnicity = factor(ethnicity, levels = c(1,2,3), labels=c("White","Black", "Other")),
+         mother_smokes = factor(mother_smokes, levels = c(0,1), labels=c("no","yes")),
+         hypertension = factor(hypertension, levels = c(0,1), labels=c("no","yes")),
+         uterine_irr = factor(uterine_irr, levels = c(0,1), labels=c("no","yes")))
+                    
+birthwt %>% 
+  head(5) %>% 
+  kable()
+```
+
+#### Exercise 13
+
+Create multiple linear regression model with `birthweight` as the outcome. Include `mother_smokes`, `mother_age`, `mother_weight` and `hypertension`.\
+Save the summary and components in a tibble.
+
+```{r}
+model_full <- lm(formula = birthweight ~ mother_smokes + mother_age + mother_weight + hypertension, data = birthwt)
 summary(model_full)
 
 summary_model_2 <- model_full %>% 
@@ -292,58 +325,67 @@ compontents_model_2 <- model_full %>%
 
 #### Exercise 13
 
-Test if `model_full` or `model_reduced` explains more of the variance of `fev1`?\
+Test if `model_full` or `model_reduced` explains more of the variance of `birthweight`?\
+
 ```{r}
 #| code-fold: false
-model_reduced <- lm(formula = fev1 ~ age + height + respsymptoms + asthma_hist, data = perulung)
+model_reduced <- lm(formula = birthweight ~ mother_smokes + mother_weight, data = birthwt)
 ```
 
-The `anova` function compares the two models and calculates the F-statistic and p-value to determine whether the full model (mod_full) explains significantly more variance than the reduced model (model_reduced). What does this test tell you?
+The `anova` function compares the two models and calculates the F-statistic and p-value to determine whether the full model (model_full) explains significantly more variance than the reduced model (model_reduced). Explain your outcome in a sentence.
 
 ```{r}
 anova(model_full, model_reduced)
+# We conclude that the more complex model is significantly (p = 0.02162) better than the simpler model, and thus we favor the more complex model.
 ```
 
-## Residual analysis 
+## Residual analysis
+
 For a quick look at the the models residuals we can use `plot()`.
+
 ```{r}
 #| code-fold: false
 par(mfrow = c(2, 2))
 plot(model_full)
 ```
-However we can use the package `performance` to analyse our model in depth. 
-We can use `check_model` to see if our residuals are normally distributed. 
-Is the line more or less flat?
+
+However we can use the package `performance` to analyse our model in depth. We can use `check_model` to see if our residuals are normally distributed. Is the line more or less flat?
+
 ```{r}
 #| code-fold: false
 check_model <- check_model(model_full, panel = FALSE, check = "linearity")
 plot(check_model) 
 ```
 
-
 #### Exercise 14
+
 Use `check_normality` to see if our residuals are normally distributed. Note that this formal test almost always yields significant results for the distribution of residuals and visual inspection (e.g. Q-Q plots) are preferable.
+
 ```{r}
 normality_result <- check_normality(model_full)
 normality_result
 ```
+
 Try to plot the QQ-plot of your normality_result with `plot()`. Do the dots follow the line?
+
 ```{r}
 plot(normality_result, type = "qq")
 
 ```
 
-
 ## Heteroscedasticity
 
 #### Exercise 15
 
-Use `check_heteroscedasticity` to  test significance  for linear regression models. We assume that the model errors (or residuals) have constant variance. If this assumption is violated the p-values from the model are no longer reliable.
+Use `check_heteroscedasticity` to test significance for linear regression models. We assume that the model errors (or residuals) have constant variance. If this assumption is violated the p-values from the model are no longer reliable.
+
 ```{r}
 heteroscedasticity_result <- check_heteroscedasticity(model_full)
 heteroscedasticity_result
 ```
+
 Plot the `heteroscedasticity_result` with `plot()`.
+
 ```{r}
 plot(heteroscedasticity_result)
 ```
@@ -365,17 +407,11 @@ Plot the `outliers_result` with `plot()` to see if any points fall out of the co
 plot(outliers_result)
 ```
 
-
 ## Multicollinearity (variance inflation factor)
 
-Collinearity or multicollinearity is a problem that can occur in regression analysis when independent variables are highly correlated with each other. It can cause instability in the model results and make the model less accurate. By using `check_collinearity` we can see if there are any problematic variables based on VIF. 
+#### Exercise 17
+Collinearity or multicollinearity is a problem that can occur in regression analysis when independent variables are highly correlated with each other. It can cause instability in the model results and make the model less accurate. By using `vif()` we can see if there are any problematic variables based on VIF.
 
 ```{r}
-plot(check_collinearity(model_full))
-
-check_collinearity(model_full) %>% 
-  kable()
-
+vif(model_full)
 ```
-
-
