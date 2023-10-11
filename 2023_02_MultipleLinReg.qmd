@@ -99,7 +99,7 @@ Where the  $\varepsilon_i$ are independently (_i. independence_), normally distr
 ## Multiple linear regression
 The conditional mean of  $Y_i$ given specific values of the independent variables $x_1, x_2, \dots, x_k$ is thus: 
 
-$$\mu_{y|\mathbf{x_1, x_2,\dots,x_k}}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
+$$\mu_{y|x_1, x_2,\dots,x_k}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
 We obtain the $k+1$ $\beta$-parameters by least squares estimation. The residual sum of squares have $n-k-1$ degrees of freedom. 
 
 

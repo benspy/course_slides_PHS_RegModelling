@@ -13,6 +13,7 @@ self-contained: true
 library(tidyverse)
 library(ggplot2)
 library(knitr)
+library(RColorBrewer)
 ```
 
 ## Program overview
@@ -31,15 +32,477 @@ library(knitr)
 |                                                       |
 |-------------------------------------------------------|
 | **Introduction to logistic regression**
-|	Generalising the linear model (link functions, maximum likelihood estimation)
+|	Generalizing the linear model (link functions, maximum likelihood estimation)
 |	The logistic model (logistic link, binomial distribution)
-|	Interpretating of coefficients (logits, odds ratios)
+|	Interpreting of coefficients (logits, odds ratios)
 |	Interactions
+
+
+## Data types
+
+![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width="90%" fig-align="left"}
+
+## Common regression models
+
+| **Scale**   | ***Examples***           | **Typical models**       |
+|-------------|--------------------------|--------------------------|
+| Continuous  | *BMI, blood pressure*    | Linear regression        |
+| Dichotomous | *Disease/death (yes/no)* | Logistic regression      |
+| Nominal     | *3 disease subtypes*     | Multinomial logist. reg. |
+| Ordinal     | *4 severity stages*      | Ordered logist. reg.     |
+| Count       | *Number of cases*        | Poisson regression       |
 
 
 ## What is a statistical model
 
 
 
+## Parameters of interest
+* The plasma volumes of 8 males were 2.75, 2.86, 3.37, 2.76, 2.62, 3.49, 3.05, 3.12 litres. We estimate the mean ($\mu$) and standard deviation ($\sigma$).  
+* Nine of 12 household contacts of a SARS-CoV-2 positive index case also tested positive; the other 3 tested negative. We estimate $\pi$, the probability of transmission.  
+* We estimate the odds ratio for the association between coronary heart disease and high systolic blood pressure in a case control study.  
 
+
+## More formal definition
+* A *statistical model* defines a family of probability distributions from which the observed data are hypothesized to arise from.
+
+* The individual distributions within the family are "indexed" (identified) by a set of *parameters*.
+
+* The purpose of estimation is to identify the "true" distribution, i.e. the "true" parameter values (*point estimation*), or a plausible range of the parameter values (*interval estimation*).
+
+## Example linear model
+
+A simple linear regression model can be specified as
+$$Y_i=\beta_0+\beta_1x_i + \varepsilon_i$$
+where the $\varepsilon_i$ ($i=1,2,...,n$) are independent and normally distributed with mean 0 and variance $\sigma^2$. 
+
+The parameters of the model are $\beta_0$, $\beta_1$, and  $\sigma^2$.
+
+Specific values of these parameter uniquely identify a (conditional) distribution of $Y_i$ (given $x_i$).
+
+## Example binomial distribution
+
+Nine of 12 household contacts of a SARS-CoV-2 positive index case also tested positive; the other 3 tested negative.   
+
+Let's model the number of positive tests $Y$ as a binomial distribution with parameters $\pi$ (the unknown probability of a positive test) and $n=12$ (known):
+
+$$P_{n,\pi}(Y=y)=\binom{n}{y}\pi^y(1-\pi)^{n-y}$$
+
+## Maximum likelihood estimation
+
+In ML estimation we estimate parameters by the values that maximise the 'likelihood' of the observed data. 
+
+Formally, we maximize the *likelihood function*, which in our case is
+
+$$\mathcal{L}(\pi|y=9)=P_{n=12,\pi}(Y=9)=\binom{12}{9} \pi^9(1-\pi)^{3}$$
+*Note*: the likelihood function is a function of the parameter of interest given the observed data.
+
+## Maximum likelihood estimation
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+L<-function(p){
+  choose(12,9)*p^9*(1-p)^(3)
+  }
+p<-seq(0,1,0.001)
+Likelihood<-L(p)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,Likelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2)
+```
+
+## Maximum likelihood estimation
+
+The ML estimator turns out to be the relative frequency $\hat{\pi}_{ML}=\frac{k}{n}$ (our standard estimator for a probability).
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+L<-function(p){
+  choose(12,9)*p^9*(1-p)^(3)
+  }
+p<-seq(0,1,0.001)
+Likelihood<-L(p)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,Likelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2)
+abline(v=9/12, lty=3, col="blue", lwd=2)
+text(0.42, 0.021, expression(hat(pi)), col="blue")
+text(0.60, 0.02, "=9/12=0.75",  col="blue")
+```
+
+## Generalizing the linear model
+
+In linear regression the conditional mean of an outcome $Y\in \mathbb{R}$ given a value $x$ of a covariate $X$ as 
+$$
+\mathrm{E}(Y|X=x)=\beta_0+\beta_1x
+$$
+with $Y$ distributed normally around this mean.
+
+This means that, as $x$ varies between $-\infty$ and $\infty$, $\mathrm{E}(Y|X=x)$ can also take on any values between $-\infty$ and $\infty$.
+
+## Generalizing the linear model
+However, many outcomes have a mean that is limited to a specific range and follow a non-normal distribution. 
+
+Examples: 
+
+* Dichotomous outcome: 
+  * $Y\in \{0,1\}$ and $\mathrm{E}(Y)\in[0,1]$ 
+  * $P(Y=1)=\pi$, $P(Y=0)=1-\pi$ (Bernouilli distribution)
+  
+* Count outcome: 
+  * $Y \in\{0,1,2,...\}$ and $\mathrm{E}(Y)\in(0,\infty)$ 
+  * $Y$ commonly modelled using Poisson distribution
+  
+## Generalizing the linear model
+We can generalise the linear model as follows: 
+$$
+g(\mathrm{E}(Y|X=x))=\beta_0+\beta_1x
+$$
+where $g$ is a 1:1-function, the so-called *link function*, that maps the range of $\mathrm{E}(Y)$ to the interval $(-\infty,\infty)$. 
+
+Equivalently, we can write: 
+
+$$
+\mathrm{E}(Y|X=x)=g^{-1}(\beta_0+\beta_1x)
+$$
+Where $g^{-1}$ is the inverse function of $g$.
+
+## Modelling a dichotomous outcome
+If we code a dichotomous outcome as $Y=1$ if the event occurs and $Y=0$ if it doesn't, the probability distribution of $Y$ is then given by a *Bernouilli distribution*: 
+
+$$P(Y=y) =\begin{cases} \pi \text{ , if } y=1 \\ 1-\pi \text{ , if } y=0 \end{cases} $$
+We can rewrite this as (small exercise): 
+
+$$ P(Y=y) =\pi^y (1-\pi)^{1-y}  $$ 
+
+## Modelling a dichotomous outcome
+The parameter $\pi$, which is the probability that $Y=1$, is, at the same time, the expected value of $Y$:
+
+$$E(Y)=\pi= P(Y=1)$$
+
+Therefore, we are looking for a suitable link function $g$ to connect $\pi$ (taking on values between 0 and 1) with the linear term $\beta_0+\beta_1x$ (taking on values between $-\infty$ and $\infty$):
+
+$$
+\mathrm{E}(Y|X=x)=P(Y=1|X=x)=\pi(x)=g^{-1}(\beta_0+\beta_1x)
+$$
+
+
+## Example: coronary heart disease
+Dataset containing age (X) and presence ($Y=1$) or absence ($Y=0$) of coronary heart disease (CHD) for n=100 individuals:
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+dat<-read.csv("data/chdage.csv")
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(dat$age, dat$chd, xlab="X (Age)", ylab="Y (CHD)" , yaxp=c(0,1,1))
+age_f<-cut(dat$age,seq(0,99,10), right=FALSE)
+dat_agg<-aggregate(dat,list(age_f,age_f),mean)
+
+
+```
+
+
+## Example: coronary heart disease
+Let's add the relative frequency (as probability estimate) of Y by 10 year age groups. The S-shape resembles a cumulative distribution function (CDF). 
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(dat$age, dat$chd, xlab="X (Age)", ylab="Relative frequency CHD",cex.axis=0.8 )
+age_f<-cut(dat$age,seq(0,99,10), right=FALSE)
+dat_agg<-aggregate(dat,list(age_f,age_f),mean)
+
+abline(v=seq(0,99,10), col="red",lty=3)
+points(dat_agg$age, dat_agg$chd, col="red")
+lines(dat_agg$age, dat_agg$chd, col="red")
+
+```
+
+
+
+## CDF of the standard normal
+We could e.g. use the CDF of a standard normal distribution to model the probabilities:
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+x<-seq(-3,3,0.01)
+pdf<-dnorm(x)
+cdf<-pnorm(x)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(x,pdf, type="l", xlab="z", ylab="CDF standard normal", col="grey",lty=3, ylim=c(0,1), cex.axis=0.8 )
+lines(x,cdf, col="red")
+
+```
+
+
+## CDF of the logistic distribution
+A common choice is the CDF of the standard logistic distribution:
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+x<-seq(-3,3,0.01)
+pdf<-dlogis(x, 0,sqrt(3/pi^(2)))
+cdf<-plogis(x, 0,sqrt(3/pi^(2)))
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(x,pdf, type="l", xlab="z", ylab="CDF Logistic distribution", col="grey",lty=3, ylim=c(0,1), cex.axis=0.8 )
+lines(x,cdf, col="red")
+
+```
+
+## Regression models for dichotomous outcomes
+Two commonly used regression models are: 
+
+* Probit regression: 
+  * CDF of standard normal used as inverse link function $g^{-1}$
+  * Frequently used in economics
+  
+* Logistic regression: 
+  * CDF of logistic distribution used as inverse link function $g^{-1}$
+  * Common choice in biostatistics/epidemiology
+
+## Comparison of logistic and standard normal distributions
+ 
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+x<-seq(-3,3,0.01)
+pdfl<-dlogis(x, 0,sqrt(3/pi^(2)))
+cdfl<-plogis(x, 0,sqrt(3/pi^(2)))
+pdfn<-dnorm(x)
+cdfn<-pnorm(x)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(x,pdfl, type="l", xlab="z", ylab="CDF Logistic distribution", col="blue",lty=3, ylim=c(0,1), cex.axis=0.8 )
+lines(x,cdfl, col="blue")
+lines(x,pdfn, col="red")
+lines(x,cdfn, col="red")
+text(-3,0.9,"Standard normal", col="red", pos=4)
+text(-3,0.8,"Logistic with mean=0, SD=1", col="blue", pos=4)
+
+```
+
+
+
+## Logistic regression
+
+The *logistic function* (CDF of the logistic distribution) is given by $g^{-1}(z)=\frac{e^z}{1+e^z}$. 
+
+Replacing $z$ with our linear term $\beta_0+\beta_1x$, we model the conditional probability of $Y=1$ given $X=x$ as
+
+$$
+\mathrm{E}(Y|X=x)=P(Y=1|X=x)=\pi(x)=\frac{e^{\beta_0+\beta_1x}}{1+e^{\beta_0+\beta_1x}}
+$$
+Note that the probability of $Y=0$ given $X=x$ is
+$$
+1-\pi(x)=\frac{1}{1+e^{\beta_0+\beta_1x}}
+$$
+
+## Logistic regression
+
+The corresponding link function is called the *logit function* $g(\pi)=\log\left(\frac{\pi}{1-\pi}\right)$
+
+Thus, our model can be equivalently written as: 
+
+$$g(\pi(x))=\log\left(\frac{\pi(x)}{1-\pi(x)}\right)=\beta_0+\beta_1x$$
+The linear term $\beta_0+\beta_1x$, in this context, is often simply referred to as *logit*. It has the convenient interpretation as the log odds of the outcome. 
+
+
+## Generalised linear models
+In R, the `glm` command is used to fit logistic regression models.
+
+*Generalised linear models (GLMs)* provide a common framework for modelling outcomes of different scale (continuous, count, categorical) and are specified as:  
+
+* $g(\mathrm{E}(Y|X=x))=\beta_0+\beta_1x$ with given *link function* $g$
+* The distribution of $Y$ is a member the *exponential family*  
+
+The *exponential family* includes the normal, Bernouilli, binomial, Poisson and other distributions.
+
+
+
+## The logistic model as a GLM
+The logit link function arises naturally when we rewrite the Bernouilli distribution in it's exponential form: 
+
+$$
+\begin{aligned}
+P(Y=y) &=\exp\{\log\{\pi^y (1-\pi)^{1-y}\}\}  \\ 
+  &= e^{y\log (\pi)+(1-y)\log (1-\pi)} \\ 
+  &= e^{y \left(\log (\pi)-log (1-\pi)\right)+\log (1-\pi)} \\
+  &= e^{y \cdot \log \left(  \frac{\pi}{1-\pi} \right)+\log (1-\pi)} 
+\end{aligned} 
+$$
+$P(Y=y)$ depends on $y$ only through the product term in the exponent. The factor with which $y$ is multiplied is easily recognized as the logit of $\pi$.
+
+
+
+## Fitting the model
+The parameters $\beta_0$ and $\beta_1$ are estimated by ML estimation. 
+
+Fitting logistic regression model for the risk of CHD in R: 
+
+::: {style="font-size: 80%;"}
+```{r, echo=TRUE}
+mod<-glm(chd~age, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+:::
+
+
+## The regression equation
+On the **logit scale** the fitted model equation is: 
+
+$$\text{logit}(\pi(\text{age}))=\log\left(\frac{\pi(\text{age})}{1-\pi(\text{age})}\right)= -5.30945 + 0.11092 \cdot \text{age}$$
+
+Conversely, on the **probability scale** we have: 
+$$\pi(\text{age})=\frac{e^{\text{logit}(\pi(\text{age}))}}{1+e^{\text{logit}(\pi(\text{age}))}} =\frac{e^{-5.30945 + 0.11092 \cdot \text{age}}}{1+e^{-5.30945 + 0.11092 \cdot \text{age}}}$$
+
+## Visualisation on the probability scale
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+par(cex=1.3, mai=c(1.2,1,.5,.5))
+plot(dat$age, dat$chd, xlab="X (Age)", ylab="Predicted probability CHD",cex.axis=0.8 , xlim=c(20,70))
+age_f<-cut(dat$age,seq(0,99,10), right=FALSE)
+dat_agg<-aggregate(dat,list(age_f,age_f),mean)
+
+abline(v=seq(0,99,10), col="red",lty=3)
+points(dat_agg$age, dat_agg$chd, col="red")
+lines(dat_agg$age, dat_agg$chd, col="red")
+newdat<-data.frame(age=seq(0,99,1))
+newdat$pred<-predict.glm(mod,newdata = newdat,type="response")
+lines(newdat$age, newdat$pred, col="blue")
+text(20,0.8,"Based on logistic regression",pos=4, col="blue")
+text(20,0.7,"Based on relative frequency within age groups",pos=4, col="red")
+```
+
+
+
+## Visualisation on the logit scale
+ 
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+par(cex=1.3, mai=c(1.2,1,.5,.5))
+age_f<-cut(dat$age,seq(0,99,10), right=FALSE)
+dat_agg<-aggregate(dat,list(age_f,age_f),mean)
+
+logit<-function(pi){log(pi/(1-pi))}
+
+newdat<-data.frame(age=seq(0,99,1))
+newdat$pred<-predict.glm(mod,newdata = newdat,type="response")
+plot(newdat$age, logit(newdat$pred), xlab="X (Age)", ylab="Predicted logit", xlim=c(20,70), type="l", col="blue" )
+abline(v=seq(0,99,10), col="red",lty=3)
+points(dat_agg$age, logit(dat_agg$chd), col="red")
+lines(dat_agg$age, logit(dat_agg$chd), col="red")
+text(20,4,"Based on logistic regression",pos=4, col="blue")
+text(20,3,"Based on relative frequency within age groups",pos=4, col="red")
+```
+
+
+
+
+
+## Predicting odds and probabilities
+```{r}
+#| echo: false
+#| eval: false
+newdat<-data.frame(age=60)
+newdat$logit<-predict.glm(mod,newdata = newdat)
+newdat$odds<-exp(newdat$logit)
+newdat$prob<-predict.glm(mod,newdata = newdat,type="response")
+newdat
+
+```
+
+For a person aged 60 years the logit is: 
+
+$$\text{logit}= -5.30945 + 0.11092 \cdot 60 = 1.345815$$
+
+The predicted odds for CHD is thus: 
+
+$$\text{odds}=e^{1.345815}=3.841317$$
+The predicted probability (risk in this context) for CHD is: 
+
+$$\pi=\frac{3.841317}{1+1.345815}=0.793445$$
+
+
+
+## Interpreting the intercept $\hat{\beta_0}$
+The intercept $\hat{\beta_0}$ is the estimated *log odds* of the outcome when the independent variables are set to 0.
+
+The practical interpretation depends on meaning of zero: 
+
+* Present case:  $\hat{\beta_0}=$ estimated  log odds for age 0 years (no practical meaning)
+* $x$ is a centered continuous variable: $\hat{\beta_0}=$ estimated log odds when $x$ is set to the sample mean
+* $x$ is a dichotomous variable (0,1 coding): $\hat{\beta_0}=$ estimated log odds for reference category (baseline log odds)
+
+
+## Interpreting the slope $\hat{\beta_1}$
+The intercept $\hat{\beta_0}$ estimates the change in log odds when the independent variable $x$ increased by 1 unit: 
+
+For any given value of $x$:
+$$\log(\text{odds}(x+1))-\log(\text{odds}(x)) = \hat{\beta_0}+\hat{\beta_1}(x+1) - \hat{\beta_0} - \hat{\beta_1}x = \hat{\beta_1}$$
+Thus $\hat{\beta_0}$ represents the *log odds ratio* (log OR) corresponding to a unit change in x:   
+
+$$\hat{\beta_1}= \log \left(\frac{\text{odds}(x+1)}{\text{odds}(x)} \right)$$
+
+## Interpreting the slope $\hat{\beta_1}$
+Therefore $e^{\hat{\beta_0}}$ is the estimated OR corresponding $x$ increased by 1 unit in $x$. 
+
+The practical intepretation depends on the meaning of a unit change: 
+
+* Our example: $e^{0.11092}= 1.1173$ is the estimated OR for CHD corresponding to an increase in age by 1 year.
+* $x$ is a dichotomous exposure variable (0,1 coding): $e^{\hat{\beta_0}}$ is the estimated OR for the outcome comparing exposed to non-exposed individuals. 
+
+## Differences in logits
+Differences in logits correspond to log ORs. We can thus extract ORs for more general comparisons from the regression equation. 
+
+Example:  OR for CHD comparing persons aged 60 with persons aged 40 years:
+
+$$\log(\text{odds}(60))-\log(\text{odds}(40)) = \hat{\beta_0}+\hat{\beta_1} 60 - \hat{\beta_0} - \hat{\beta_1}40 = 20 \cdot \hat{\beta_1}$$
+$$\text{OR} = e^{20 \cdot \hat{\beta_1}}= e^{20 \cdot 0.11092}= 9.19261$$
+
+
+## Multiple logistic regression
+
+The logistic regression model can be extended to include multiple independent variables.   
+
+On the logit scale, we write the regression equation: 
+$$\text{logit}(\pi(x_1, x_2,\dots,x_k))=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
+
+On the probability scale the model becomes: 
+$$
+\pi(x_1, x_2,\dots,x_k)=\frac{e^{\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k}}{1+e^{\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k}}
+$$
+
+
+## Caerphilly dataset
+Data 
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+dat<-read.csv("data/data_caerphilly_full.csv", sep = ";")
+
+dat<- dat |> mutate(mi = factor(mi, levels=c(0, 1), labels=c("No", "Yes")),
+                socclass = factor(socclass, levels=c("I", "II", "IIINM", "IIIM", "IV", "V")), 
+                diabetes=factor(diabetes, levels=c("No/uncertain", "Yes")), 
+                smoking=factor(smoking, levels=c("Never smoked", " Ex>5 years", "Ex 1-4 years" ,"<15 per day", ">15 per day")),
+                hbpsyst = factor(hbpsyst, levels=c(0, 1), labels=c("No", "Yes")),
+                hbpdias = factor(hbpdias, levels=c(0, 1), labels=c("No", "Yes")),
+                bmicat = factor(bmicat, levels=c("Underweight", "Normal", "Overweight", "Obese")),
+                cursmoke = factor(cursmoke, levels=c("No", "Yes")))
+
+head(dat,10)
+
+```
+#	Interactions
 

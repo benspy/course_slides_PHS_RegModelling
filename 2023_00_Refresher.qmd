@@ -1,5 +1,5 @@
 ---
-title: "Refresher Basic Statistics"
+title: "Refresher in Basic Statistics"
 author: "Ben Spycher"
 format: ctupres-revealjs
 # footer: |
@@ -23,15 +23,6 @@ library(knitr)
 
 ![[Image by Siva Sivarajah](https://towardsdatascience.com/statistical-testing-understanding-how-to-select-the-best-test-for-your-data-52141c305168)](pics/data_types.jpg){width="90%" fig-align="left"}
 
-## Common regression models
-
-| **Scale**   | ***Examples***           | **Typical models**       |
-|-------------|--------------------------|--------------------------|
-| Continuous  | *BMI, blood pressure*    | Linear regression        |
-| Dichotomous | *Disease/death (yes/no)* | Logistic regression      |
-| Nominal     | *3 disease subtypes*     | Multinomial logist. reg. |
-| Ordinal     | *4 severity stages*      | Ordered logist. reg.     |
-| Count       | *Number of cases*        | Poisson regression       |
 
 ## Location and spread
 
@@ -80,7 +71,7 @@ $$\operatorname {E} [Y]=1\cdot {\frac {1}{6}}+2\cdot {\frac {1}{6}}+3\cdot {\fra
 
 The normal distribution is a frequently used distribution for continuous random variables.
 
-The probability distribution (probability density function) of of normally distributed random variable $Y$ with expected value $\mu$ and variance $\sigma^2$ is given by:
+The probability distribution (probability density function) of a normally distributed random variable $Y$ with expected value $\mu$ and variance $\sigma^2$ is given by:
 
 $$f(y)=\frac{1}{\sqrt{2\pi \sigma^2 }}e^{-\frac{1}{2}\frac{(y-\mu)^2}{\sigma^2}}$$
 
@@ -120,7 +111,7 @@ pnorm(z, lower.tail = FALSE)
 
 ## Remember 1.96
 
-Some commonly used quantiles of the standard normal distribution (you will shortly see why).
+Some commonly used quantiles of the standard normal distribution.
 
 ```{r}
 #| echo: true
@@ -180,7 +171,7 @@ Alternative notation: $s_x$, $\text{SD}$, $\text{SD}_x$
 
 ## Why divide by $n-1$?
 
-The sample mean is closer to the data points than the true mean would be.
+The sample mean (red triangles) is on average closer to data points (blue circles) than the true mean (red dashed line) is.
 
 ```{r, echo=FALSE, fig.width=6, fig.height=2.5, fig.align="center"}
 set.seed(123)
@@ -223,7 +214,7 @@ Properties of good estimators:
 
 ## The standard error
 
-The standard **standard error** of an estimator is the standard deviation of its sampling distribution.
+The **standard error** of an estimator is the standard deviation of its sampling distribution.
 
 The **standard error of the sample mean** is given by:
 
@@ -231,11 +222,11 @@ $$SE=\frac{\sigma}{\sqrt{n}}$$ where $\sigma$ is standard deviation of the under
 
 ## SE as a measure of precision
 
-The standard error decrease with the square root of sample size.
+The standard error decreases inverse proportionally to the square root of sample size.
 
 The relative decrease in standard error from $n=10$ to $n=100$ is the same as from 100 to 1000.
 
-Typically we do not know the population variance of the original population, $\sigma^2$. We therefore usually estimate $SE$ using the sample variance or standard deviation:
+Typically we do not know the population variance of the original population $\sigma^2$. We therefore usually estimate $SE$ using the sample variance or standard deviation:
 
 $$\hat{SE}=\frac{SD}{\sqrt{n}}$$
 
@@ -249,7 +240,9 @@ $$z=\frac{\overline{x}-\mu}{SE}$$ approaches the *standard normal distribution*.
 
 ## Central limit theorem (CLT)
 
-Histograms of standardized means $z$ for increasing sample sizes ![](pics/CLT_exponential.jpeg)
+Histograms of standardized means $z$ from numerous random samples of given sizes (Top left: distribution generating the samples with dotted line indicating true mean): 
+
+![](pics/CLT_exponential.jpeg)
 
 ## The normality assumption
 
@@ -280,7 +273,7 @@ ggplot() +
   stat_function(fun = dnorm, args=list(mean=mean, sd=sd), color="blue", n=1000) +  
   stat_function(fun = dnorm, args=list(mean=mean, sd=sd), geom = "area", fill = "blue", alpha = 0.2, n=1000) + 
   xlim(mean-2.5*sd,mean+2.5*sd) + ylab("Density") + xlab("Body height [cm]") + 
-  geom_text(aes(label="Population, mean=160, SD=10", x=155,y=.05), size=6, color="blue") + 
+  geom_text(aes(label="Population, mean=170, SD=10", x=155,y=.05), size=6, color="blue") + 
   geom_text(aes(label="Means, n=10, SE=3.16", x=160,y=.1), size=6, color="orange") + 
   geom_text(aes(label="Means, n=40, SE=1.58", x=160,y=.25), size=6, color="red") + 
   ggtitle(label="Sampling distribution of the mean assuming normality") +
@@ -292,19 +285,19 @@ Caveat: $\sigma$ is unknown. We can only estimate $SE$ using $\hat{SE}=\frac{s}{
 
 ## The normality assumption
 
-In small samples, $z=\frac{\overline{x}-\mu}{\hat{SE}}$ is somewhat wider than the standard normal distribution.
+For small sample sizes, the sampling distribution of $z=\frac{\overline{x}-\mu}{\hat{SE}}$ is somewhat wider than the standard normal distribution.
 
 ![](pics/CLT_normal.jpeg)
 
 ## Student's t-distribution
 
-Under the normality assumption, the statistic $t=\frac{\overline{x}-\mu}{\hat{SE}}$ follows the $t$-distribution with $n-1$ degrees of freedom (one df lost because the mean was used to obtain $s$).
+Under the normality assumption, the statistic $t=\frac{\overline{x}-\mu}{\hat{SE}}$ follows the $t$-distribution with $\nu =n-1$ degrees of freedom (one df lost because the mean was used to obtain $s$).
 
 \bcenter![](pics/Student_t.png){width="60%"}\ecenter
 
 ## Quantiles of the t-distribution
 
-The $t$-distribution approaches the standard normal distribution as the df increase:
+The $t$-distribution approaches the standard normal distribution as the degrees of freedom increase:
 
 | df                    | 5                        | 50                        | 100                        | 500                        | 1000                        |
 |------------|------------|------------|------------|------------|------------|
@@ -312,11 +305,19 @@ The $t$-distribution approaches the standard normal distribution as the df incre
 
 ## 95%-Confidence intervals
 
-We can used the $t$-distribution to construct an approximate 95%-confidence interval (95%-CI) for the mean.
+We can use the $t$-distribution to construct a 95%-confidence interval (95%-CI) for the mean.
 
-$$[\overline{x}-t_{n-1,0.975}\hat{SE},\; \overline{x}+t_{n-1,0.975}\hat{SE}]$$ *Defining feature*: A 95%-CI is defined such that, under repeated sampling, 95% of the intervals are expected to contain the true mean.
+$$[\overline{x}-t_{n-1,0.975}\hat{SE},\; \overline{x}+t_{n-1,0.975}\hat{SE}]$$ *Defining feature*: Under repeated sampling, 95% of the estimated intervals are expected to contain the true mean.
 
 ![](pics/cis.png)
+
+## 95%-Confidence intervals
+
+For large samples sizes, we can can simply use the 0.975-quantile of the standard normal distribution to obtain a 95%-CI: 
+
+$$[\overline{x}-1.96\cdot\hat{SE},\; \overline{x}+1.96\cdot\hat{SE}]$$ 
+
+Note: Because of the CLT, this approximation is safe to use even if the normality assumption does not hold, as long as the sample is sufficiently large.
 
 ## The Peru lung function data
 
@@ -396,11 +397,11 @@ Large deviations of  $D = \overline{x}_2-\overline{x}_1$ from 0 on either side p
 
 
 ## The P-value
-**P-value**: The *conditional probability* (under repeated sampling) of obtaining a test statistic s extreme or more extreme than the one observed *given $H_0$ is true*.
+**P-value**: The *conditional probability* (under repeated sampling) of obtaining a test statistic as extreme or more extreme than the one observed *given $H_0$ is true*.
 
 Under $H_0$ and the normality assumption, the statistic $t_D=\frac{D}{\hat{SE}_D}$ follows a t-distribution. 
 
-The combined shaded area beyond the $|t_D|$ on either side of 0 gives us the two-sided p-value.
+The combined shaded area (under the curve) beyond the $|t_D|$ on either side of 0 gives us the two-sided p-value.
 
 ```{r}
 #|echo: false
@@ -437,7 +438,7 @@ The second version is known as Welch's test. It is the default in R (we recommen
 
 
 ## Two-sample $t$-test
-Let's test for differences in mean $FEV_1$ between sexes in the smaller age groups 
+Let's test for differences in mean $FEV_1$ between sexes: 
 
 ```{r}
 #| echo: true
@@ -463,7 +464,7 @@ The P-value is frequently (if not usually) misinterpreted:
 $P \le 0.05$ has been immensely abused in the literature and often equated with proving an effect. Here some of the criticisms:  
 
 *  [The ASA statement on p-values](https://doi.org/10.1080/00031305.2016.1154108)
-*  [Scientists rise up against statistical significance](https://doi.org/10.1080/00031305.2016.1154108)
+*  [Scientists rise up against statistical significance](https://www.nature.com/articles/d41586-019-00857-9)
 *  [Sifting the evidence — what's wrong with significance tests?](https://doi.org/10.1136/bmj.322.7280.226)
 
 :::
@@ -513,7 +514,7 @@ lines(x=w,y=v)
 ```
 
 ## Assessing linear association 
-Positive (negative) deviations from the mean weight tend to coincied with positive (negative) deviations from mean plasma volume.
+Positive (negative) deviations from the mean weight tend to coincide with positive (negative) deviations from mean plasma volume.
 
 ```{r}
 #| echo: false
@@ -536,7 +537,7 @@ __Pearson correlation coefficient__ is a measure of linear association:
 
 $$r_{xy}=\frac{\sum_{i=1}^n(x_i-\overline{x})(y_i-\overline{y})}{\sqrt{\sum_{i=1}^n(x_i-\overline{x})^2}\sqrt{\sum_{i=1}^n(y_i-\overline{y})^2}} $$
 
-It takes on values between -1 (perfect negative correlation) and 1 (perfect negative correlation).
+It takes on values between -1 (perfect negative correlation) and 1 (perfect positive correlation).
 
 Correlation between plasma volumen and body weight:
 ```{r}

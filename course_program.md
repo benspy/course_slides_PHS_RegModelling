@@ -3,7 +3,10 @@ output:
   pdf_document: default
   html_document: default
 ---
-# Course program - Linear and Logistic Regression Modelling in R
+# Linear and Logistic Regression Modelling in R
+
+## Preparation
+Please make sure you are familiar with the material presented in the slide set "Refresher in Basic Statistics". These slides contain essential material covered in the course "Basic Statistics and Projects in R". For your reference, the slides of that course can be found  [**here**](https://ispmbern.github.io/basic-statistics-and-projects-in-R/#slides) (click on the HTML files in the timetable)
 
 ## Daily schedule 
 Time | Activity
@@ -41,9 +44,9 @@ Time | Activity
 |||	Residual analysis (Residual plots, leverage, QQ-plot)
 |||	Multicollinearity (variance inflation factor)
 |**Tue**| **AM** | **Introduction to logistic regression**
-|||	Generalising the linear model (link functions, maximum likelihood estimation)
+|||	Generalizing the linear model (link functions, maximum likelihood estimation)
 |||	The logistic model (logistic link, binomial distribution)
-|||	Interpretating of coefficients (logits, odds ratios)
+|||	Interpreting of coefficients (logits, odds ratios)
 |||	Interactions
 |   | **PM** | **Model building considerations and strategies**
 |||	Testing (Wald and likelihood ratio tests)

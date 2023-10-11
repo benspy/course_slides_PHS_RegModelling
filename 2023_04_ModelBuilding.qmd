@@ -13,6 +13,7 @@ self-contained: true
 library(tidyverse)
 library(ggplot2)
 library(knitr)
+library(RColorBrewer)
 ```
 
 ## Program overview
@@ -37,6 +38,270 @@ library(knitr)
 |	Special issues in prediction modelling (calibration, discrimination, overfitting)
 
 
-## Revisit the maximum likelihood estimation
+#	Testing in the logistic model
+
+## Maximum likelihood estimation
+
+Recall our ML estimator for the parameter $\pi$  of a binomial distribution $\hat{\pi}_{ML}=\frac{k}{n}$
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+L<-function(p){
+  choose(12,9)*p^9*(1-p)^(3)
+  }
+p<-seq(0,1,0.001)
+Likelihood<-L(p)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,Likelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2)
+abline(v=9/12, lty=3, col="blue", lwd=2)
+text(0.42, 0.021, expression(hat(pi)), col="blue")
+text(0.60, 0.02, "=9/12=0.75",  col="blue")
+```
+
+## Sampling variability
+![](pics/sampling_variation.jpg){fig-align="center"}
+
+## Sampling variability of ML estimator
+
+Frequency of k positive tests if the true probability were 0.75 
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+rf<-dbinom(1:12,12, prob=0.75)
+par(cex=1.3, mai=c(1,1,.5,.5))
+barplot(rf, xlab="k", names.arg=1:12)
+```
 
 
+
+
+## Sampling variability of ML estimator
+
+Each $k$ results in a different likelihood function and ML estimator. Dark colors in the graph indicate the most frequent (under repeated sampling) likelihood functions and ML estimates.
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-12
+p<-seq(0,1,0.001)
+rf<-dbinom(1:n,n, prob=0.75)
+rf_max<-max(rf)
+k<-1
+Likelihood<-Lgen(k,n,p)
+mypallete<-brewer.pal(9,"Greens")
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,Likelihood, type="l", col=mypallete[round(rf[k]*100)], xlab=expression(paste(pi)), lwd=2, ylim=c(0,0.5))
+for (k in 1:n) {
+  Likelihood<-Lgen(k,n,p)
+  lines(p,Likelihood, type="l", col=mypallete[round(rf[k]/rf_max*9)], lwd=2)
+  abline(v=k/n, lty=3, col=mypallete[round(rf[k]/rf_max*9)], lwd=2)
+}
+
+```
+
+
+
+## Sampling variability of ML estimator
+
+Increasing sample size increases precision (here $n=100$)
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-100
+p<-seq(0,1,0.001)
+rf<-dbinom(1:n,n, prob=0.75)
+rf_max<-max(rf)
+k<-1
+Likelihood<-Lgen(k,n,p)
+mypallete<-brewer.pal(9,"Greens")
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,Likelihood, type="l", col=mypallete[round(rf[k]*100)], xlab=expression(paste(pi)), lwd=2, ylim=c(0,0.12))
+for (k in 1:n) {
+  Likelihood<-Lgen(k,n,p)
+  lines(p,Likelihood, type="l", col=mypallete[round(rf[k]/rf_max*9)], lwd=2)
+  abline(v=k/n, lty=3, col=mypallete[round(rf[k]/rf_max*9)], lwd=2)
+}
+
+```
+
+
+
+## Log-likelihood function
+It is convenient to work with the log-likelihood function $\ell(\pi)=\mathrm{log}(\mathcal{L}(\pi))$ shown here
+for $k=75$ and $n=100$:
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-100
+k<-75
+p<-seq(0,1,0.001)
+p0<-0.75
+LogLikelihood<-log(Lgen(k,n,p))
+approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+max(LogLikelihood)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,LogLikelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
+abline(v=k/n, lty=3, col="blue", lwd=2)
+text(k/n-0.03, -48, expression(hat(pi)), col="blue")
+```
+
+## Quadratic approximation
+In the peak region, the log-likelihood function is well approximated by a quadratic function with the same curvature at the maximum.
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-100
+k<-75
+p<-seq(0,1,0.001)
+p0<-0.75
+LogLikelihood<-log(Lgen(k,n,p))
+approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+max(LogLikelihood)
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,LogLikelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
+lines(p,approx, type="l", col="red", lwd=2)
+abline(v=k/n, lty=3, col="blue", lwd=2)
+text(k/n-0.03, -48, expression(hat(pi)), col="blue")
+```
+
+
+## Fisher Information
+The curvature of the log-likelihood function serves as a measure of information contained in the data about the parameter of interest. 
+
+This measure is called *Fisher information*:  
+
+$\mathcal{I}=-\mathrm{E}[\ell^{''}_i(\pi_0)]$
+
+where $\mathrm{E}$ denotes the expectation and $\ell^{''}_i(\pi_0)$ is the second derivative of the log-likelihood function (for a single observation) evaluated at the true parameter $\pi_0$.
+
+More generally, when there are $p$ parameters, $\mathcal{I}$ is a $p\times p$ (Fisher information matrix).
+
+
+
+## Standard error of the ML estimator
+The $SE$  of the ML estimator is inversely related to the curvature of log-likelihood function at its maximum. 
+
+Specifically, for large $n$, the $SE$ of the parameter is well approximated by
+
+$$
+SE_{\hat\pi_{ML}}\approx \frac{1}{\sqrt{n \cdot \mathcal{I}}}
+$$
+
+Importantly, the $SE$ decreases inverse proportionally with $\sqrt{n}$ (under certain conditions that are commonly satisfied).
+
+## The ML estimator is consistent and asymptotically normal
+Again under certain conditions and assuming that the data arose from the hypothesized distribution, the following holds: 
+
+As $n$ increases, the ML estimator $\hat{\pi}_{ML}$ coverges to the true value $\pi_0$.
+
+More specifically
+
+$$
+\sqrt{n}(\hat{\pi}_{ML}-\pi_0) \rightarrow \mathcal{N}(0,\frac{1}{\sqrt{\mathcal{I}}})
+$$
+This means that, for reasonably large sample sizes, the sampling distribution of $\hat{\pi}_{ML}$ is approximately normal with mean $\pi_0$ and variance $SE_{\hat\pi_{ML}}^2$.
+
+
+## Testing procedures
+Coming back to our example, let's assume we want to test the hypothesis:
+
+$$H_0:\pi_0 =0.6$$
+We will get to know two common testing procedures: 
+
+* Wald tests: based on the quadratic approximation of the log-likelihood
+* Likelihood ratio tests: based on the actual log-likelihood function
+
+## Testing procedures
+
+Under $H_0$ both $z^2$ and $\lambda_{ML}$ are approximately $\chi^2$-distributed with 1 df. 
+(Note: the y-axis scale is now $2\times$ log-likelihood)
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-100
+k<-75
+p<-seq(0,1,0.001)
+p0<-0.75
+ph0<-0.6
+LogLikelihood<-log(Lgen(k,n,p))
+lmax<-max(LogLikelihood)
+approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+lmax
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,2*LogLikelihood, type="l", col="green", xlab=expression(pi), ylab="2 x log-likelihood", lwd=2, ylim=c(-20,-3))
+lines(p,2*approx, type="l", col="red", lwd=2)
+abline(v=k/n, lty=3, col="blue", lwd=2)
+text(k/n-0.03, -19, expression(hat(pi)), col="blue")
+abline(h=2*lmax, lty=3, col="blue", lwd=2)
+abline(v=0.6, lty=3, col="blue", lwd=2)
+text(0.6+0.03, -19.6, expression(pi[0]), col="blue")
+lines(ph0-c(0.005,0.005),c(2*lmax,2*log(Lgen(k,n,0.6))), col="green", lwd=3)
+lines(ph0+c(0.005,0.005),c(2*lmax,-n/(p0*(1-p0))*(ph0-p0)^2+2*lmax), col="red", lwd=3)
+text(ph0-0.06, -7, expression(lambda[LR]), col="green")
+text(ph0+0.04, -6.8, expression(z^2), col="red")
+```
+
+
+## Wald test
+
+The statistic 
+$$
+z=  \frac{\hat{\pi}_{ML}-\pi_0}{\hat{SE}}
+$$
+can be compared with the normal distribution.
+
+Here $\hat{SE}=\sqrt{\frac{\hat{\pi}_{ML}(1-\hat{\pi}_{ML})}{n}}$ and hence $z=3.4641$ resulting in a p-value of 0.000532.
+
+We can safely reject $H_0$.
+
+*Note*: if $X$ follows a standard normal distribution, $X^2$ follows a $\chi^2$-distribution with 1 df. We could thus equivalently use $z^2$ and compare to the  $\chi^2$-distribution. It is common however to report $z$ instead of $z^2$.
+
+
+
+
+## Likelihood ratio test (LR-test)
+
+The statistic 
+$$
+\lambda_{LR}=  -2(\ell(\pi_0) - \ell(\hat{\pi}_{ML}))=-2\cdot \mathrm{log}\left( \frac{\mathcal{L}(\pi_0)}{\mathcal{L}(\hat{\pi}_{ML})}\right)=-2\cdot \mathrm{log}\left(LR\right)
+$$
+can be compared with a $\chi^2$ distribution with 1 df 
+
+Here $\ell(\pi_0)=-7.3738$ and $\ell(\hat{\pi}_{ML})=-2.3881$  and hence $\lambda_{LR}=9.9714$ resulting in a p-value of 0.00159.
+
+Again, we can safely reject $H_0$.
+
+*Note*: in the general situation with multiple parameters, obtaining $\mathcal{L}(\pi_0)$ (or equivaluently $\ell(\pi_0)$ ) would require refitting the model under the restriction of $H_0$. The number of df is equal to the number of parameters restricted in $H_0$.
+
+
+
+
+#	Assessing linearity of association
+
+#	Purposeful variable selection
+
+#	Prediction models
