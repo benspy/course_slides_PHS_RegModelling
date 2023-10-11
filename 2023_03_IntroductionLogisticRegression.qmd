@@ -14,6 +14,7 @@ library(tidyverse)
 library(ggplot2)
 library(knitr)
 library(RColorBrewer)
+library(epitools)
 ```
 
 ## Program overview
@@ -440,9 +441,9 @@ The intercept $\hat{\beta_0}$ is the estimated *log odds* of the outcome when th
 
 The practical interpretation depends on meaning of zero: 
 
-* Present case:  $\hat{\beta_0}=$ estimated  log odds for age 0 years (no practical meaning)
-* $x$ is a centered continuous variable: $\hat{\beta_0}=$ estimated log odds when $x$ is set to the sample mean
-* $x$ is a dichotomous variable (0,1 coding): $\hat{\beta_0}=$ estimated log odds for reference category (baseline log odds)
+* Present case:  $e^{\hat{\beta_0}}=$ estimated  odds for age 0 years (no practical meaning)
+* $x$ is a centered continuous variable: $e^{\hat{\beta_0}}=$ estimated odds when $x$ is set to the sample mean
+* $x$ is a dichotomous variable (0,1 coding): $e^{\hat{\beta_0}}=$ estimated odds for reference category (baseline log odds)
 
 
 ## Interpreting the slope $\hat{\beta_1}$
@@ -483,26 +484,187 @@ $$
 \pi(x_1, x_2,\dots,x_k)=\frac{e^{\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k}}{1+e^{\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k}}
 $$
 
+##	Onchocerciasis dataset
 
-## Caerphilly dataset
-Data 
+Data on $n=$ 1032 individuals from a study of Onchocerciasis (river blindness) in Sierra Leone ([McMahon et al., Trans
+Roy Soc Trop Med Hyg 1988; 82:595–600](https://doi.org/10.1016/0035-9203(88)90524-X)). 
+
+Variables of interest: 
+
+* `mf`: infection with microfilariae of *Onchocerciasis volvulus* (Yes/No)
+* `area`: Area of village (savannah or rainforest) 
+* `agegrp`: Age group (5–9, 10–19, 20–39, 40+)
+
+
+##	Onchocerciasis dataset
+
+Data from a random sample of 10 study members: 
+
+::: {style="font-size: 80%;"}
 ```{r}
 #| echo: false
 #| eval: true
-#| fig-align: "center"
-dat<-read.csv("data/data_caerphilly_full.csv", sep = ";")
+dat<-read.csv("data/onch1302.csv", sep=";")
 
-dat<- dat |> mutate(mi = factor(mi, levels=c(0, 1), labels=c("No", "Yes")),
-                socclass = factor(socclass, levels=c("I", "II", "IIINM", "IIIM", "IV", "V")), 
-                diabetes=factor(diabetes, levels=c("No/uncertain", "Yes")), 
-                smoking=factor(smoking, levels=c("Never smoked", " Ex>5 years", "Ex 1-4 years" ,"<15 per day", ">15 per day")),
-                hbpsyst = factor(hbpsyst, levels=c(0, 1), labels=c("No", "Yes")),
-                hbpdias = factor(hbpdias, levels=c(0, 1), labels=c("No", "Yes")),
-                bmicat = factor(bmicat, levels=c("Underweight", "Normal", "Overweight", "Obese")),
-                cursmoke = factor(cursmoke, levels=c("No", "Yes")))
+dat<- dat |> select(area, agegrp, mf) |> mutate(mf = factor(mf, levels=c(0, 1), labels=c("No", "Yes")),
+                    agegrp = factor(agegrp, levels=c(0, 1, 2, 3), labels=c("5–9", "10–19", "20–39", "40+")), 
+                    area = factor(area, levels=c(0, 1), labels=c("Savannah", "Rainforest")))
 
-head(dat,10)
+dat$area<-relevel(dat$area, "Savannah")
+set.seed(1234)
+kable(dat[sample(1:dim(dat)[1],10), ])
 
 ```
-#	Interactions
+:::
 
+##	Dichotomous independent variable
+Prevalence of infection by area: 
+
+![ ](pics/oncho_area_mf.png){fig-align="center"}
+
+OR for infection comparing exposed to unexposed: 
+
+$$\text{OR} = \frac{541/213}{281/267}=\frac{2.540}{1.052}=2.413$$
+
+##	Dichotomous independent variable
+Prevalence of infection by area: 
+
+![ ](pics/oncho_area_mf.png){fig-align="center"}
+
+OR for infection comparing exposed to unexposed: 
+
+$$\text{OR} = \frac{541/213}{281/267}=\frac{2.540}{1.052}=2.413$$
+
+##	Dichotomous independent variable
+Rewriting the odds in terms of the baseline odds and the OR: 
+
+On the odds scale: 
+![ ](pics/oncho_dich_odds.png){fig-align="center"}
+
+
+On the log odds scale: 
+![ ](pics/oncho_dich_logodds.png){fig-align="center"}
+
+##	Dichotomous independent variable
+Let's fit a logistic regression: 
+
+::: {style="font-size: 80%;"}
+```{r, echo=TRUE}
+mod<-glm(mf~area, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+
+:::
+
+##	Dichotomous independent variable
+Estimated parameters from logistic regression (logit scale): 
+
+* Baseline log odds: $\hat{\beta_0}=0.05111$
+* Log OR: $\hat{\beta_1}=0.88102$
+
+.. on the odds scale: 
+
+* Baseline odds: $e^{\hat{\beta_0}}=1.05243$
+* OR: $e^{\hat{\beta_1}} = 2.41336$
+
+##	Dichotomous independent variable
+
+
+
+::: {style="font-size: 90%;"}
+
+|       | Log odds    |
+|:---------------------------------|:-------------|
+| Exposed ($x=1$)    | $\hat{\beta_0}+1\cdot\hat{\beta_1}=0.0511+0.8810=0.9321$ |
+| Unexposed ($x=0$)  | $\hat{\beta_0}+0\cdot\hat{\beta_1}=0.05111$ |
+
+:::
+
+
+
+::: {style="font-size: 90%;"}
+
+|       | Odds    |
+|:---------------|:---------------|
+| Exposed ($x=1$)    | $e^{\hat{\beta_0}}\cdot e^{\hat{\beta_1}}=1.0524\cdot2.4134=2.5399$ |
+| Unexposed ($x=0$)  | $e^{\hat{\beta_0}}=1.0524$ |
+
+:::
+
+
+##	Categorical independent variable
+
+Microfilarial infection by age group: 
+
+![Source: Kirkwood BR, Sterne JAC, Essential Medical Statistics, 2nd ed. Table 19.9, p. 199](pics/oncho_agegrp_mf.png){fig-align="center"}
+
+
+##	Categorical independent variable
+Rewriting the odds in terms of the baseline odds and the ORs: 
+
+![Source: Kirkwood BR, Sterne JAC, Essential Medical Statistics, 2nd ed. Table 19.10, p. 199](pics/oncho_cat_odds.png){fig-align="center"}
+
+Here "Baseline" refers to the baseline odds and Agegrp(1), Agegrp(2), and Agegrp(3) are ORs comparing the corresponding age groups with the reference group (5-9 years) 
+
+##	Categorical independent variable
+Again, we can also estimate these parameters using logistic regression. We use the following dummy coding for age group
+
+|agegrp |$x_1$ | $x_2$| $x_3$|
+|-----|-----|-----|-----|
+|5-9 |0|0|0|
+|10-19 |1|0|0|
+|20-29 |0|1|0|
+|40+ |0|0|1|
+
+... and fit the regression equation: 
+$$\text{logit}(\pi(x_1, x_2,x_3))=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\beta_3 x_3$$
+
+
+##	Categorical independent variable
+Fitted model: 
+
+::: {style="font-size: 80%;"}
+```{r, echo=TRUE}
+mod<-glm(mf~agegrp, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+:::
+
+##	Categorical independent variable
+It is easy to verify that we obtain the same baseline odds and ORs: 
+
+```{r}
+#| echo: true
+#| eval: true
+cbind(Estimates=mod$coefficients, Exponentiated=exp(mod$coefficients))
+```
+
+In simple logistic regression with a single categorical independent variable, maximum likelihood estimation yields the same baseline odds and ORs as we would calculate manually. 
+
+
+##	Model with two variables
+
+Tabulating `agegrp` against `area`
+
+```{r}
+#| echo: true
+#| eval: true
+tbl0<-table(dat$agegrp, dat$area)
+tbl<-cbind(tbl0, round(100*proportions(tbl0, margin=2),1))
+colnames(tbl) <- c("Savannah (n)", "Rainforest(n)", "Savannah (col %)", "Rainforest (col %)")
+tbl
+```
+
+... we see that the proportion of persons in the oldest(youngest) age category is higher(lower) in rainforest areas compared to savannah areas.
+
+This suggests that the observed univariable associations might be confounded. 
+
+## Model with two variables
+To adjuts for the potential confounding let's include both variables
+
+::: {style="font-size: 80%;"}
+```{r, echo=TRUE}
+mod<-glm(mf~area + agegrp, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+:::
