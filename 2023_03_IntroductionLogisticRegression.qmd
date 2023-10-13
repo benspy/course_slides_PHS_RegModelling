@@ -15,6 +15,8 @@ library(ggplot2)
 library(knitr)
 library(RColorBrewer)
 library(epitools)
+library(ggplot2)
+library(kableExtra)
 ```
 
 ## Program overview
@@ -642,7 +644,7 @@ cbind(Estimates=mod$coefficients, Exponentiated=exp(mod$coefficients))
 In simple logistic regression with a single categorical independent variable, maximum likelihood estimation yields the same baseline odds and ORs as we would calculate manually. 
 
 
-##	Model with two variables
+##	Adjusting for confounding
 
 Tabulating `agegrp` against `area`
 
@@ -655,16 +657,157 @@ colnames(tbl) <- c("Savannah (n)", "Rainforest(n)", "Savannah (col %)", "Rainfor
 tbl
 ```
 
-... we see that the proportion of persons in the oldest(youngest) age category is higher(lower) in rainforest areas compared to savannah areas.
+... we see differences in the age distribution between savannah and rainforest areas, suggesting that the observed univariable associations might be confounded. 
 
-This suggests that the observed univariable associations might be confounded. 
+##	Adjusting for confounding
+![ ](pics/dag_mf.png){fig-align="center"}
+
+## Adjusting for confounding
+* Confounding: The observed association between an outcome and an independent is (at least partially) due to shared a common cause and is thus spurious.
+
+* For a thorough discussion in the context of causal inference see [Hernán MA, Robins JM (2020). Causal Inference: What If. Boca
+Raton: Chapman & Hall/CRC](https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/)
+
+* Approaches to adjust for confounding include: 
+  - Standardization 
+  - Stratification
+  - Multiple regression analysis
+
+
+## Adjusting for confounding
+Adjusting for confounding in regression analysis: 
+
+* Variables representing potential confounders are included in addition to independent variable of interest (e.g. exposure/treatment)
+
+* A relevant change in the effect measure (e.g. OR) indicates confounding 
+
+* A common criterion used in epidemiology requires relative change of at least 10%
 
 ## Model with two variables
-To adjuts for the potential confounding let's include both variables
 
-::: {style="font-size: 80%;"}
-```{r, echo=TRUE}
+::: {style="font-size: 90%;"}
+```{r}
+#| echo: true
+#| eval: true
 mod<-glm(mf~area + agegrp, data=dat, family=binomial(link="logit"))
 summary(mod)
 ```
 :::
+
+## Adjusting for confounding
+* Crude OR comparing rainforest with savannah areas: $2.413$
+* OR adjusted for age group (current model):  $e^{1.1260} = 3.083$
+
+This difference suggests confounding by age group. 
+
+Note that the ORs for age groups have also changed somewhat: 
+* Crude OR comparing age group 40+ to 5-9 years: $16.024$
+* OR adjusted for area (current model):  $e^{2.8703} =  17.642$
+
+
+## Interpreting adjusted ORs
+Rainforest versus Savannah:
+
+* Persons of a given age group are estimated to have higher odds of microfilarial infection by a factor of 3.1 if they live in rainforest areas compared to savannah areas.
+
+Age group 40+ to 5-9 years:
+
+* In a given area (Savannah or rainforest), persons aged 40+ are estimated to have higher odds of microfilarial infection by a factor of 17.6 compared to children aged 5-9 years.
+
+## Homogeneity assumption
+The model implicitly assumes homogeneity of effects: 
+
+* The ORs comparing rainforest with savannah constant accross age groups
+* The ORs comparing age groups are the same in savannah and rainforest areas
+
+## Homogeneity assumption
+![Source: Kirkwood BR, Sterne JAC, Essential Medical Statistics, 2nd ed. Table 22.2b, p. 207](pics/oncho_adjusted_odds.png){fig-align="center"}
+
+## Homogeneity assumption
+These assumptions imply parallel shifts on the logit scale
+
+![Source: Kirkwood BR, Sterne JAC, Essential Medical Statistics, 2nd ed. Fig 20.1, p. 210](pics/oncho_parallel.png){fig-size=80%; fig-align="center"}
+
+## Effect modification
+We can relax the homogeneity assumption and allow the association between one variable, A, and the outcome to vary across levels of another variable, B. 
+
+If indeed it varies, we speck of *effect modification* (strictly speaking this terminology should be reserved to causal associations).
+
+B is said to: 
+
+*  "modify the effect" of A or ..
+*  be an "effect modifier" of the effect of A on the outcome.
+
+In regression analysis we assess effect modification by including interaction terms.
+
+## Interaction terms
+
+Using the formula `mf ~ area*agegrp` we can include *interaction terms* representing the specific effects of age groups in rainforest areas only:
+
+::: {style="font-size: 75%;"}
+```{r}
+#| echo: false
+#| eval: true
+dat2<- dat |> select(mf,area, agegrp) |> 
+  mutate(agegrp = factor(agegrp, levels=c("5–9", "10–19", "20–39", "40+"), labels=c("0","1","2","3")), 
+         area = factor(area, levels=c("Savannah", "Rainforest"), labels=c("0", "1"))) |> 
+  rename(A = area, B = agegrp)
+  
+x<-kable(unique(cbind(dat[,c("area","agegrp")], model.matrix(mf~A * B, data=dat2))), row.names=FALSE)
+add_header_above(x,c("","","b_0","b_1" , "b_2", "b_3", "b_4", "b_5", "b_6", "b_7"))
+```
+:::
+
+## Model with interaction
+
+::: {style="font-size: 90%;"}
+```{r}
+#| echo: true
+#| eval: true
+mod<-glm(mf~area*agegrp, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+:::
+
+
+## Interpreting ORs for interaction
+Compare the logit for persons aged 40+ living in rainforest areas, $\hat{\beta_0} + \hat{\beta_1} + \hat{\beta_4} + \hat{\beta_7}$,  to that of children age 5-9 living in savannah areas (baseline),  $\hat{\beta_0}$.
+
+The logit difference (log OR) for this comparison is:
+$$\hat{\beta_1} + \hat{\beta_4} + \hat{\beta_7}= 0.6030 + 2.3514 + 0.9510 = 3.9054$$ 
+
+*  $\hat{\beta_1}$ (*main effect*): effect of rainforest areas in 0-5 yo
+*  $\hat{\beta_4}$ (*main effect*): effect of age 40+ in savannah areas
+*  $\hat{\beta_7}$ (*interaction affect*): combined additional effect age 40+ in rainforest areas.
+
+:::
+
+## Summary
+
+* Maximum likelihood estimation provides a general framework for statistical models including generalized linear models (GLM)
+* GLMs extend linear regression for use on discrete or categorical outcomes.
+* GLMs are specified by the 
+    - the family of distributions used to model the outcome 
+    - the link function relating the the expected value of the outcome with the linear regression term ($\beta_0+ \beta_1 x_1 + \dots  + \beta_k x_k$).  
+* logistic regression models use the binomial distribution and the logit link function
+
+## Summary
+
+* The expected value of a dichotomous outcome $Y \in {0,1}$ is the probability that $Y=1$ (probability of event). 
+* Logistic regression models the conditional probability of a dichotomous outcome given values of the independent variables.
+* For given values, $x_1, x_2,\dots ,x_k$, of the independent variables we obtain: 
+  - the log odds as $\beta_0+ \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_k x_k$ (logit)
+  - the odds as $e^{\beta_0+ \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_k x_k}$
+  - the probability as $\frac{e^{\beta_0+ \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_k x_k}}{1+e^{\beta_0+ \beta_1 x_1 + \beta_2 x_2 + \dots + \beta_k x_k}}$
+
+## Summary
+* The slope coefficient of an independent variable represents the log OR for the outcome associated with a unit change in that variable while keeping the levels or other variables fixed. 
+* For a dichotomous exposure variable $e^{\beta}$ represents the OR comparing the exposed  (coded 1) to the unexposed group (0). 
+* Without interaction terms, the model assumes homogeneity of ORs over the levels of other variables. 
+* We can allow ORs to vary over the levels of another variable (effect modification) by including interaction terms.
+
+
+
+
+
+
