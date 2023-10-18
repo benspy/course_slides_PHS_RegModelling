@@ -11,6 +11,7 @@ self-contained: true
 
 ```{r setup, include=FALSE}
 library(tidyverse)
+library(broom)
 library(ggplot2)
 library(knitr)
 library(RColorBrewer)
@@ -341,7 +342,7 @@ Plot of the chi-square distribution for values of $k = 1, 2,\dots, 9$
 
 
 ## Wald test
-In the case of a single parameter, the sqaure root of the Wald statistic becomes our familiar z-statistic 
+In the case of a single parameter, the square root of the Wald statistic becomes our familiar z-statistic 
 $$
 z=  \frac{\hat{\pi}_{ML}-\pi_0}{\hat{SE}}
 $$
@@ -355,47 +356,148 @@ We can safely reject $H_0$.
 
 
 
-## LR-test (single parameter case)
+## LR-test - single parameter case
+We refer to the ratio of the likelihood function for two given parameter values $\pi_1$ and $\pi_2$ as the likelihood ratio $LR=\frac{\mathcal{L}(\pi_0)}{\mathcal{L}(\hat{\pi}_{ML})}$.
 
-The statistic 
+The LR-test statistic is 2 times the negative LR with comparing the restricted parameter value under $H_0$ with ML estimate:   
 $$
 \lambda_{LR}=  -2(\ell(\pi_0) - \ell(\hat{\pi}_{ML}))=-2\cdot \mathrm{log}\left( \frac{\mathcal{L}(\pi_0)}{\mathcal{L}(\hat{\pi}_{ML})}\right)=-2\cdot \mathrm{log}\left(LR\right)
 $$
-can be compared with a $\chi^2$ distribution with 1 df 
+Under $H_0$, $\lambda_{LR}$ follows a $\chi^2$ distribution with 1 df. 
 
-Here $\ell(\pi_0)=-7.3738$ and $\ell(\hat{\pi}_{ML})=-2.3881$  and hence $\lambda_{LR}=9.9714$ resulting in a p-value of 0.00159.
-
-Again, we can safely reject $H_0$.
-
-*Note*: in the general situation with multiple parameters, obtaining $\mathcal{L}(\pi_0)$ (or equivaluently $\ell(\pi_0)$ ) would require refitting the model under the restriction of $H_0$. The number of df is equal to the number of parameters restricted in $H_0$.
+Here $\ell(\pi_0)=-7.3738$ and $\ell(\hat{\pi}_{ML})=-2.3881$  and hence $\lambda_{LR}=9.9714$ resulting in a p-value of 0.00159. Again, we can safely reject $H_0$.
 
 
+## LR-test - general case
+When there are multiple parameters, we can test multiple restrictions. 
 
-## LR-test (general case)
-More generally (multiple parameters and restrictions) formula
+Example: In the logistic regression model 
+$$\text{logit}(\pi(x_1, x_2,\dots,x_k))=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
+we may wish to test $H_0: \beta_1=\beta_2=\beta_3=0$.
 
-## LR-test (general case)
-Caculation requires refitting under H_0
+Under $H_0$, LR statistic $\lambda_{LR}=  -2(\ell(\hat{\boldsymbol\beta}_{H_0}) - \ell(\hat{\boldsymbol\beta}))$
+follows a $\chi^2$ distribution with 3 df (3 restrictions). 
 
-Pendat of the F-test of linear models in glm
+Here $\hat{\boldsymbol\beta}$ stands for the vector of fitted parameters of the full model $\hat{\boldsymbol\beta}_{H_0}$ for those of the restricted model under $H_0$ (i.e dropping the first 3 variables).
+
+
+
+## Tests in standard glm output
+Output using `summary` command: 
+
+```{r}
+#| echo: false
+#| eval: true
+dat<-read.csv("data/onch1302.csv", sep=";")
+
+dat<- dat |> select(area, agegrp, mf) |> mutate(mf = factor(mf, levels=c(0, 1), labels=c("No", "Yes")),
+                    agegrp = factor(agegrp, levels=c(0, 1, 2, 3), labels=c("5–9", "10–19", "20–39", "40+")), 
+                    area = factor(area, levels=c(0, 1), labels=c("Savannah", "Rainforest")))
+
+dat$area<-relevel(dat$area, "Savannah")
+```
+
+```{r}
+#| echo: true
+#| eval: true
+mod<-glm(mf~area + agegrp, data=dat, family=binomial(link="logit"))
+summary(mod)
+```
+## Tests in standard glm output
+We can also use the `tidy` and `glance` functions from the `broom` package to view the glm object
+```{r}
+#| echo: true
+#| eval: true
+tidy(mod)
+glance(mod)
+```
+
+## Tests in standard glm output
+The z-value and p-values reported for each estimate refer to the Wald test for the null-hypothesis that the corresponding $\beta$-parameter is zero:  $H_0: \beta_i=\beta_{H_0}= 0$. 
+
+Example: The z-statistic for the `areaRainforest` parameter is: 
+
+$$z= \frac{\hat{\beta}_1-\beta_{H_0}}{\hat{SE}(\hat{\beta}_1)}=\frac{1.1260-0}{0.1376}=8.181$$
+The area under the standard normal curve beyond $|z|$ gives the two-sided p-value as reported
+```{r}
+#| echo: true
+#| eval: true
+output<-tidy(mod)
+2*pnorm(-abs(output$estimate[2]/output$std.error[2]))
+```
+
+
+## Tests in standard glm output
+Interpretation of null-hypothesis   $H_0: \beta_i= 0$: 
+
+- For intercept,  $\beta_0= 0$ means that the baseline odds is 1.
+- For a slope coefficient,  $\beta_i= 0$ means that the corresponding OR is 1.
+
+In our example we can safely reject the hypothesis that the odds of microfilarial infection is the same in rainforest areas as in savannah areas.
 
 
 ## Deviance 
-Explain what it is
 
-Equivalence with RSS in linear model
+The deviance of a model is given by: 
+
+$$D=-2(\ell(\hat{\boldsymbol\beta}) - \ell(\hat{\boldsymbol\beta}_{S}))$$
+
+Where $\hat{\boldsymbol\beta}$ is the vector fitted parameters of the model in question, and $\hat{\boldsymbol\beta}_{S}$ that of the saturated model. 
+
+The *saturated model* is one that has a parameter for every observation and thus fits the data exactly. 
+
+The deviance is a generalization of the residual sum of squares (RSS) in linear regression. For the linear model, $D=\text{RSS}$.
+
+## global LR-test
+
+The standard output reports the deviance of the fitted model ("residual deviance", denoted here as $D$) and the null model ("null deviance", $D_{H_0}$), which includes the intercept only. 
+
+We can use these to run an LR-test for the null-hypothesis: 
+
+$$H_0=\beta_1 = \beta_2 =\dots =\beta_k =0$$
+The test statistic is simply the difference in deviance: 
+
+ $$\lambda_{LR}= -2(\ell(\hat{\boldsymbol\beta}_{H_0}) - \ell(\hat{\boldsymbol\beta}))=D_{H_0}-D $$
+
+and can be compared to  $\chi^2$ distribution with $k$ df.
 
 
-## Tests in practice
-show model output of logistic regression (microfilarial infection)
+## global LR-test
+In our example, $D = 1384.8$ and $D_0=1714.1$. Thus the test statistic is $\lambda_{LR}=1714.1-1384.8=329.3$. 
 
-## Tests in practice
-Wald tests reported as default per parameter
+We can use the `anova` command to run the test: 
 
+
+```{r}
+#| echo: true
+#| eval: true
+mod<-glm(mf~area + agegrp, data=dat, family=binomial(link="logit"))
+mod_0<-glm(mf~1, data=dat, family=binomial(link="logit"))
+anova(mod_0, mod, test="LRT")
+```
 
 ## LR test for interaction
-Run the LR test for using deviance manually
+Recall our model for interaction 
 
+```{r}
+#| echo: true
+#| eval: true
+mod_int<-glm(mf~area*agegrp, data=dat, family=binomial(link="logit"))
+summary(mod_int)
+```
+
+## LR test for interaction
+We can use the LR-test to test whether their is interaction. 
+
+The null-hypothesis statest that the $\beta$-parameters of all 3 interaction terms are 0. 
+
+```{r}
+#| echo: true
+#| eval: true
+anova(mod, mod_int, test="LRT")
+```
+
+We find no evidence for interaction between area and age group (P = 0.1531)
 
 ## LR test in practice 
 Run the LR test using deviance with anova function
@@ -526,7 +628,7 @@ As a viable approach for n>>p
 Explain steps
 
 
-## Prediciton modeling
+## Prediction modeling
 Special issues: 
 
 - Often large number of candidate predictors -> risk of overfitting
