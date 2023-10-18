@@ -1,5 +1,5 @@
 ---
-title: "Model building considerations and strategies"
+title: "Model building"
 author: "Ben Spycher"
 format: ctupres-revealjs
 # footer: |
@@ -40,9 +40,42 @@ library(RColorBrewer)
 
 #	Testing in the logistic model
 
+## Purpose of mulivariate models
+Take from linear model slide set
+
+## Steps in model building
+Model building often includes at least on or multiple (if not all) following steps 
+
+* Variable selection: Which independent variables to include
+* Assessing linearity: Is the association of a continuous independent variable x with g(E(y)) linear?
+* Modelling non-linear associations: If not, how should we model it? 
+* Assessing interaction: Are there interactions between included variables?
+
+Tools needed: Tests and model-selection criteria
+
+
+
 ## Maximum likelihood estimation
 
-Recall our ML estimator for the parameter $\pi$  of a binomial distribution $\hat{\pi}_{ML}=\frac{k}{n}$
+Recall our simple example: Nine of 12 household contacts of a SARS-CoV-2 positive index case also tested positive; the other 3 tested negative.   
+
+Let's model the number of positive tests $Y$ as a binomial distribution with parameters $\pi$ (the unknown probability of a positive test) and $n=12$ (known):
+
+$$P_{n,\pi}(Y=y)=\binom{n}{y}\pi^y(1-\pi)^{n-y}$$
+
+## Maximum likelihood estimation
+
+In ML estimation we estimate parameters by the values that maximise the 'likelihood' of the observed data. 
+
+Formally, we maximize the *likelihood function*, which in our case is
+
+$$\mathcal{L}(\pi|y=9, n=12)=P_{n=12,\pi}(Y=9)=\binom{12}{9} \pi^9(1-\pi)^{3}$$
+*Note*: the likelihood function is a function of the parameter of interest given the observed data.
+
+
+## Maximum likelihood estimation
+
+ML estimator for the parameter $\pi$  of a binomial distribution $\hat{\pi}_{ML}=\frac{k}{n}$
 ```{r}
 #| echo: false
 #| eval: true
@@ -139,7 +172,7 @@ for (k in 1:n) {
 
 
 ## Log-likelihood function
-It is convenient to work with the log-likelihood function $\ell(\pi)=\mathrm{log}(\mathcal{L}(\pi))$ shown here
+The log of the likelihood function has useful properties. Shown here the log-likelihood function $\ell(\pi)=\mathrm{log}(\mathcal{L}(\pi))$
 for $k=75$ and $n=100$:
 
 ```{r}
@@ -156,13 +189,13 @@ p0<-0.75
 LogLikelihood<-log(Lgen(k,n,p))
 approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+max(LogLikelihood)
 par(cex=1.3, mai=c(1,1,.5,.5))
-plot(p,LogLikelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
+plot(p,LogLikelihood, type="l", col="black", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
 abline(v=k/n, lty=3, col="blue", lwd=2)
 text(k/n-0.03, -48, expression(hat(pi)), col="blue")
 ```
 
 ## Quadratic approximation
-In the peak region, the log-likelihood function is well approximated by a quadratic function with the same curvature at the maximum.
+In the peak region, the log-likelihood function (in green) is well approximated by a quadratic function (red) sharing the same curvature at the maximum.
 
 ```{r}
 #| echo: false
@@ -178,7 +211,7 @@ p0<-0.75
 LogLikelihood<-log(Lgen(k,n,p))
 approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+max(LogLikelihood)
 par(cex=1.3, mai=c(1,1,.5,.5))
-plot(p,LogLikelihood, type="l", col="green", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
+plot(p,LogLikelihood, type="l", col="black", xlab=expression(paste(pi)), lwd=2, ylim=c(-50,0))
 lines(p,approx, type="l", col="red", lwd=2)
 abline(v=k/n, lty=3, col="blue", lwd=2)
 text(k/n-0.03, -48, expression(hat(pi)), col="blue")
@@ -186,7 +219,7 @@ text(k/n-0.03, -48, expression(hat(pi)), col="blue")
 
 
 ## Fisher Information
-The curvature of the log-likelihood function serves as a measure of information contained in the data about the parameter of interest. 
+The curvature of the log-likelihood function serves as a measure of "information" contained in the data about the parameter of interest. 
 
 This measure is called *Fisher information*:  
 
@@ -194,7 +227,7 @@ $\mathcal{I}=-\mathrm{E}[\ell^{''}_i(\pi_0)]$
 
 where $\mathrm{E}$ denotes the expectation and $\ell^{''}_i(\pi_0)$ is the second derivative of the log-likelihood function (for a single observation) evaluated at the true parameter $\pi_0$.
 
-More generally, when there are $p$ parameters, $\mathcal{I}$ is a $p\times p$ (Fisher information matrix).
+More generally, when there are $p$ parameters, $\mathcal{I}$ is a $p\times p$ matrix (*Fisher information matrix*).
 
 
 
@@ -229,12 +262,11 @@ $$H_0:\pi_0 =0.6$$
 We will get to know two common testing procedures: 
 
 * Wald tests: based on the quadratic approximation of the log-likelihood
-* Likelihood ratio tests: based on the actual log-likelihood function
+* Likelihood ratio (LR) tests: based on the actual log-likelihood function
 
 ## Testing procedures
 
-Under $H_0$ both $z^2$ and $\lambda_{ML}$ are approximately $\chi^2$-distributed with 1 df. 
-(Note: the y-axis scale is now $2\times$ log-likelihood)
+The LR-test statistic is the difference between the log-likelihood (scaled by factor 2) evaluated at its maximum and at the hypothesized parameter: $\lambda_{ML}=2(\ell(\hat{\pi}_{ML})-\ell(\pi_0))$. 
 
 ```{r}
 #| echo: false
@@ -252,38 +284,78 @@ LogLikelihood<-log(Lgen(k,n,p))
 lmax<-max(LogLikelihood)
 approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+lmax
 par(cex=1.3, mai=c(1,1,.5,.5))
-plot(p,2*LogLikelihood, type="l", col="green", xlab=expression(pi), ylab="2 x log-likelihood", lwd=2, ylim=c(-20,-3))
+plot(p,2*LogLikelihood, type="l", col="black", xlab=expression(pi), ylab="2 x log-likelihood", lwd=2, ylim=c(-20,-3))
 lines(p,2*approx, type="l", col="red", lwd=2)
 abline(v=k/n, lty=3, col="blue", lwd=2)
 text(k/n-0.03, -19, expression(hat(pi)), col="blue")
 abline(h=2*lmax, lty=3, col="blue", lwd=2)
 abline(v=0.6, lty=3, col="blue", lwd=2)
 text(0.6+0.03, -19.6, expression(pi[0]), col="blue")
-lines(ph0-c(0.005,0.005),c(2*lmax,2*log(Lgen(k,n,0.6))), col="green", lwd=3)
-lines(ph0+c(0.005,0.005),c(2*lmax,-n/(p0*(1-p0))*(ph0-p0)^2+2*lmax), col="red", lwd=3)
-text(ph0-0.06, -7, expression(lambda[LR]), col="green")
-text(ph0+0.04, -6.8, expression(z^2), col="red")
+lines(ph0-c(0.004,0.004),c(2*lmax,2*log(Lgen(k,n,0.6))), col="black", lwd=4)
+#lines(ph0+c(0.004,0.004),c(2*lmax,-n/(p0*(1-p0))*(ph0-p0)^2+2*lmax), col="red", lwd=4)
+text(ph0-0.06, -7, expression(lambda[LR]), col="black")
+#text(ph0+0.04, -6.8, expression(z^2), col="red")
 ```
 
 
-## Wald test
 
-The statistic 
+## Testing procedures
+The same evaluations based on the quadratic approximation yield the Wald test statistic $z^2$. Under $H_0$ and repeated sampling, both $z^2$ and $\lambda_{ML}$ are approximately (for large $n$) $\chi^2$-distributed with 1 df. 
+
+
+```{r}
+#| echo: false
+#| eval: true
+#| fig-align: "center"
+Lgen<-function(k,n,p){
+  choose(n,k)*p^k*(1-p)^(n-k)
+}
+n<-100
+k<-75
+p<-seq(0,1,0.001)
+p0<-0.75
+ph0<-0.6
+LogLikelihood<-log(Lgen(k,n,p))
+lmax<-max(LogLikelihood)
+approx<--0.5*n/(p0*(1-p0))*(p-p0)^2+lmax
+par(cex=1.3, mai=c(1,1,.5,.5))
+plot(p,2*LogLikelihood, type="l", col="black", xlab=expression(pi), ylab="2 x log-likelihood", lwd=2, ylim=c(-20,-3))
+lines(p,2*approx, type="l", col="red", lwd=2)
+abline(v=k/n, lty=3, col="blue", lwd=2)
+text(k/n-0.03, -19, expression(hat(pi)), col="blue")
+abline(h=2*lmax, lty=3, col="blue", lwd=2)
+abline(v=0.6, lty=3, col="blue", lwd=2)
+text(0.6+0.03, -19.6, expression(pi[0]), col="blue")
+lines(ph0-c(0.004,0.004),c(2*lmax,2*log(Lgen(k,n,0.6))), col="black", lwd=4)
+lines(ph0+c(0.004,0.004),c(2*lmax,-n/(p0*(1-p0))*(ph0-p0)^2+2*lmax), col="red", lwd=4)
+text(ph0-0.06, -7, expression(lambda[LR]), col="black")
+text(ph0+0.04, -6.8, expression(z^2), col="red")
+```
+
+## Chi-squared distribution
+Consider $Z_1, Z_2, \dots, Z_k$ independently sampled from the standard normal distribution. The sum of squares $Q=\sum_{i=1}^k Z_i^2$ is then chi-squared distributed with $k$ degrees of freedom. 
+
+Plot of the chi-square distribution for values of $k = 1, 2,\dots, 9$
+
+![Source:<http://commons.wikimedia.org/wiki/User:Geek3>](pics/Chi-square.png){width=80%}
+
+
+## Wald test
+In the case of a single parameter, the sqaure root of the Wald statistic becomes our familiar z-statistic 
 $$
 z=  \frac{\hat{\pi}_{ML}-\pi_0}{\hat{SE}}
 $$
-can be compared with the normal distribution.
+and can be compared with the normal distribution.
 
-Here $\hat{SE}=\sqrt{\frac{\hat{\pi}_{ML}(1-\hat{\pi}_{ML})}{n}}$ and hence $z=3.4641$ resulting in a p-value of 0.000532.
+In our example, $\hat{SE}=\sqrt{\frac{\hat{\pi}_{ML}(1-\hat{\pi}_{ML})}{n}}$ and hence $z=3.4641$ resulting in a p-value of 0.000532.
 
 We can safely reject $H_0$.
 
-*Note*: if $X$ follows a standard normal distribution, $X^2$ follows a $\chi^2$-distribution with 1 df. We could thus equivalently use $z^2$ and compare to the  $\chi^2$-distribution. It is common however to report $z$ instead of $z^2$.
 
 
 
 
-## Likelihood ratio test (LR-test)
+## LR-test (single parameter case)
 
 The statistic 
 $$
@@ -299,9 +371,168 @@ Again, we can safely reject $H_0$.
 
 
 
+## LR-test (general case)
+More generally (multiple parameters and restrictions) formula
 
-#	Assessing linearity of association
+## LR-test (general case)
+Caculation requires refitting under H_0
 
-#	Purposeful variable selection
+Pendat of the F-test of linear models in glm
 
-#	Prediction models
+
+## Deviance 
+Explain what it is
+
+Equivalence with RSS in linear model
+
+
+## Tests in practice
+show model output of logistic regression (microfilarial infection)
+
+## Tests in practice
+Wald tests reported as default per parameter
+
+
+## LR test for interaction
+Run the LR test for using deviance manually
+
+
+## LR test in practice 
+Run the LR test using deviance with anova function
+
+## Testing linearity of association
+General problem (show graph) coronary heart disease
+
+## Testing linearity of association
+Write down procedure steps: 
+
+- Create an categorical variable (factor) representing quintiles
+- Create a "continuous" variable representing means within quintiles
+- LR test of 2 (included as continuous) nested with 1 
+
+## Testing linearity of association
+Show example: calculations in R
+
+## Testing linearity of association
+Show example: graphically
+
+## Modelling non-linear associations
+Simple method variable transformations: 
+
+- log or some power
+- Include x^2 or (x^3 rarely needed)
+
+
+## Modelling non-linear associations
+Show example graphically 
+
+## Modelling non-linear associations
+More advanced methods (not for this course): 
+
+- fractional polynomials 
+- splines
+
+
+
+## Variable selection
+Depends on the purpose
+
+- Single exposure: selection of confounding factors, causal inference DAGs
+- Prediction modelling: Selection should maximise predictive performence (in an external dataset)
+- More general risk factor modelling: Multiple candidate risk factors / predictors; which ones are important (not implying causation)
+
+## Model selection criterion
+Also for non-nested comparisons
+
+general formula
+
+## Overfitting 
+Introduce general problem, come back later when focusing on prediction
+
+Optimism, shrinkage
+
+## Overfitting 
+Describe the general problem
+
+Model fit always increases 
+
+## Overfitting 
+Infinite monkey theorem
+
+Model fit always increases 
+
+
+
+## AIC
+more liberal (lower penalization), favors more parameters
+
+
+## BIC
+more conservative (greater penalization), consistent (chooses the right model as n -> inf)
+
+often preferred
+
+## Variable selection
+Different approaches: 
+
+* Selection based on prior knowledge
+* Data driven: 
+  - Automated stepwise regression
+  - "Purposeful selection"
+  - Penalized regression (Lasso, Ridge, Elastic net)
+
+## Stepwise regression
+General approach
+
+- Backward 
+- Forward 
+- Alternative
+
+## Stepwise regression in R
+Based on AIC/BIC
+
+## Caerphilly dataset 
+Introduce caerphily dataset
+
+## Stepwise forward regression
+run for caerphilly
+
+## Caerphilly dataset 
+stepwise for caerphilly
+
+## Problems of stepwise regression
+Generally not recommended
+
+Criticisms by Harrell (ref)
+
+Also investigator (partial) knowledge ignored, doesn't consider non-linear functional forms, interactions
+
+
+##	Purposeful variable selection
+As a viable approach for n>>p
+
+Explain steps
+
+
+##	Purposeful variable selection
+As a viable approach for n>>p
+
+Explain steps
+
+
+##	Purposeful variable selection
+As a viable approach for n>>p
+
+Explain steps
+
+
+## Prediciton modeling
+Special issues: 
+
+- Often large number of candidate predictors -> risk of overfitting
+- Assessing model performance
+  - Discrimination / 
+
+## Further reading: 
+[García-Portugués E, Notes for Predictive Modeling](https://bookdown.org/egarpor/PM-UC3M/)
+

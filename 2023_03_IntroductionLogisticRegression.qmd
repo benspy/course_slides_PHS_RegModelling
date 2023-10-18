@@ -97,7 +97,7 @@ In ML estimation we estimate parameters by the values that maximise the 'likelih
 
 Formally, we maximize the *likelihood function*, which in our case is
 
-$$\mathcal{L}(\pi|y=9)=P_{n=12,\pi}(Y=9)=\binom{12}{9} \pi^9(1-\pi)^{3}$$
+$$\mathcal{L}(\pi|y=9,n=12)=P_{n=12,\pi}(Y=9)=\binom{12}{9} \pi^9(1-\pi)^{3}$$
 *Note*: the likelihood function is a function of the parameter of interest given the observed data.
 
 ## Maximum likelihood estimation
@@ -522,7 +522,7 @@ kable(dat[sample(1:dim(dat)[1],10), ])
 ##	Dichotomous independent variable
 Prevalence of infection by area: 
 
-![ ](pics/oncho_area_mf.png){fig-align="center"}
+![ ](pics/oncho_area_mf.png){width=90%;fig-align="center"}
 
 OR for infection comparing exposed to unexposed: 
 
@@ -531,7 +531,7 @@ $$\text{OR} = \frac{541/213}{281/267}=\frac{2.540}{1.052}=2.413$$
 ##	Dichotomous independent variable
 Prevalence of infection by area: 
 
-![ ](pics/oncho_area_mf.png){fig-align="center"}
+![ ](pics/oncho_area_mf.png){width=90%}
 
 OR for infection comparing exposed to unexposed: 
 
@@ -541,11 +541,11 @@ $$\text{OR} = \frac{541/213}{281/267}=\frac{2.540}{1.052}=2.413$$
 Rewriting the odds in terms of the baseline odds and the OR: 
 
 On the odds scale: 
-![ ](pics/oncho_dich_odds.png){fig-align="center"}
+![ ](pics/oncho_dich_odds.png){width=90%}
 
 
 On the log odds scale: 
-![ ](pics/oncho_dich_logodds.png){fig-align="center"}
+![ ](pics/oncho_dich_logodds.png){width=90%}
 
 ##	Dichotomous independent variable
 Let's fit a logistic regression: 
