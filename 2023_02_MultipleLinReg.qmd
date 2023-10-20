@@ -195,10 +195,10 @@ lines(x,fitted.values(reg), col="blue", lwd=1.5)
 Common reasons for including multiple independent variables are: 
 
 * Risk factor modelling in analytic studies
+    + Assessing dose-response relationship
     + Adjusting for confounding 
-    + Mutual adjustment with multiple risk factors
+    + Identifying risk factors
 * Prediction modelling 
-* Estimating non-linear associations
 
 
 ## Modelling lung function

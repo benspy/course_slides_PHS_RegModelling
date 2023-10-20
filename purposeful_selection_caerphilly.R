@@ -4,13 +4,13 @@ dat<-read.csv("data/data_caerphilly_full.csv", sep = ";")
 str(dat)
 
 # make factors out of character variables
-dat<- dat |> mutate(mi = factor(mi, levels=c(0, 1), labels=c("No", "Yes")),
+dat<- dat |> dplyr::select(mi, socclass, diabetes, cursmoke, smoking, fibrin, totchol, hdlchol, bpsyst, bpdias, bmi) |>
+  mutate(mi = factor(mi, levels=c(0, 1), labels=c("No", "Yes")),
                     socclass = factor(socclass, levels=c("I", "II", "IIINM", "IIIM", "IV", "V")), 
                     diabetes=factor(diabetes, levels=c("No/uncertain", "Yes")), 
                     smoking=factor(smoking, levels=c("Never smoked", " Ex>5 years", "Ex 1-4 years" ,"<15 per day", ">15 per day")),
                     hbpsyst = factor(hbpsyst, levels=c(0, 1), labels=c("No", "Yes")),
                     hbpdias = factor(hbpdias, levels=c(0, 1), labels=c("No", "Yes")),
-                    bmicat = factor(bmicat, levels=c("Underweight", "Normal", "Overweight", "Obese")),
                     cursmoke = factor(cursmoke, levels=c("No", "Yes")))
 str(dat)
 head(dat,10)
@@ -24,16 +24,14 @@ vars<-c("socclass", "diabetes", "cursmoke", "smoking", "fibrin", "totchol", "hdl
 
 ##
 # Step 1 - Univariable regressions regression -> selection for inclusion P<0.2 (based on Wald or LR)
+tab<-data.frame()
 for (var in vars) {
   formula <- paste("mi ~", var )
   model<-glm(formula, data=dat, family=binomial(link="logit"))
-  cat("\n")
-  print(var)
-  print(summary(model)$coef)
-  print("p-value LR-test:")
-  print(anova(model, test="Chisq")[["Pr(>Chi)"]][2])
+  tab <- rbind(tab,c(print(var), anova(model, test="Chisq")[["Pr(>Chi)"]][2]))
 }
-
+names(tab) <- c("Variable", "P-value LR-test")
+tab
 
 ##
 # Step 2
