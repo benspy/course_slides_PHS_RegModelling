@@ -9,8 +9,6 @@ dat<- dat |> dplyr::select(mi, socclass, diabetes, cursmoke, smoking, fibrin, to
                     socclass = factor(socclass, levels=c("I", "II", "IIINM", "IIIM", "IV", "V")), 
                     diabetes=factor(diabetes, levels=c("No/uncertain", "Yes")), 
                     smoking=factor(smoking, levels=c("Never smoked", " Ex>5 years", "Ex 1-4 years" ,"<15 per day", ">15 per day")),
-                    hbpsyst = factor(hbpsyst, levels=c(0, 1), labels=c("No", "Yes")),
-                    hbpdias = factor(hbpdias, levels=c(0, 1), labels=c("No", "Yes")),
                     cursmoke = factor(cursmoke, levels=c("No", "Yes")))
 str(dat)
 head(dat,10)
@@ -91,15 +89,42 @@ hist(dat$fibrin)
 quint <- quantile(dat$fibrin, seq(0,1,0.2))
 dat$fibrin_q <- cut(dat$fibrin, quint, include.lowest = TRUE)
 # a numeric variable representing means within quintiles
-qmeans <- tapply(dat$fibrin, dat$fibrin_q, mean)
-dat$fibrin_qm <- qmeans[dat$fibrin_q]
+qmed <- tapply(dat$fibrin, dat$fibrin_q, median)
+dat$fibrin_qm <- qmed[dat$fibrin_q]
 table(dat$fibrin_q, dat$fibrin_qm)
 # run regressions
+temp<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
 temp1<-glm(mi ~ diabetes + smoking + fibrin_q+ totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
 summary(temp1)
 temp2<-glm(mi ~ diabetes + smoking + fibrin_qm + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
 summary(temp2)
-anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+# anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+new <- dat[1,] |> dplyr::select(diabetes, smoking, totchol,hdlchol, bpdias)
+new <- cbind(new, fibrin_q=levels(dat$fibrin_q), fibrin_qm=qmed)
+new$fit1<-predict(temp1, newdata=new)
+new$fit2<-predict(temp2, newdata=new)
+# Plots logit scale
+ggplot(data=new, aes(x=fibrin_qm)) +
+  geom_vline(xintercept = quint, linetype="dotted",  color = "blue") +
+  geom_line(aes(y=fit1), col="red") +
+  geom_line(aes(y=fit2), col="blue") +
+  xlab("fibrin") + ylab("logit") +
+  theme_minimal() +
+  theme(text = element_text(size = 20)) 
+# probability scale
+new <- dat[1,] |> dplyr::select(diabetes, smoking, totchol,hdlchol, bpdias)
+new <- cbind(new, fibrin=seq(min(dat$fibrin), max(dat$fibrin), length.out=100))
+new$fit<-predict(temp, newdata=new, type="response")
+dat$mi_n <- as.numeric(dat$mi=="Yes")
+ggplot(data=dat, aes(x=fibrin, y=mi_n))+
+  geom_point(alpha = 1/10) + 
+  geom_smooth(method="loess", col="grey", se=FALSE) + 
+  geom_line(data=new, aes(y=fit, x=fibrin), color="red") +
+  xlab("fibrin") + ylab("probability") +
+  theme_minimal() +
+  theme(text = element_text(size = 20)) 
+
+
 
 
 # totchol
