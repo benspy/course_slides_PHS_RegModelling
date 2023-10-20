@@ -216,6 +216,9 @@ plot(p,LogLikelihood, type="l", col="black", xlab=expression(paste(pi)), lwd=2, 
 lines(p,approx, type="l", col="red", lwd=2)
 abline(v=k/n, lty=3, col="blue", lwd=2)
 text(k/n-0.03, -48, expression(hat(pi)), col="blue")
+text(0, -5, "Log likelihood", col="black", pos=4)
+text(0, -10, "Quadratic approximation", col="red", pos=4)
+
 ```
 
 
@@ -296,6 +299,9 @@ lines(ph0-c(0.004,0.004),c(2*lmax,2*log(Lgen(k,n,0.6))), col="black", lwd=4)
 #lines(ph0+c(0.004,0.004),c(2*lmax,-n/(p0*(1-p0))*(ph0-p0)^2+2*lmax), col="red", lwd=4)
 text(ph0-0.06, -7, expression(lambda[LR]), col="black")
 #text(ph0+0.04, -6.8, expression(z^2), col="red")
+text(0, -10, "Log likelihood", col="black", pos=4)
+text(0, -12, "Quadratic approximation", col="red", pos=4)
+
 ```
 
 
@@ -346,7 +352,7 @@ In the case of a single parameter, the square root of the Wald statistic becomes
 $$
 z=  \frac{\hat{\pi}_{ML}-\pi_0}{\hat{SE}}
 $$
-and can be compared with the normal distribution.
+and can be compared with the standard normal distribution.
 
 In our example, $\hat{SE}=\sqrt{\frac{\hat{\pi}_{ML}(1-\hat{\pi}_{ML})}{n}}$ and hence $z=3.4641$ resulting in a p-value of 0.000532.
 
@@ -433,7 +439,7 @@ Interpretation of null-hypothesis   $H_0: \beta_i= 0$:
 - For intercept,  $\beta_0= 0$ means that the baseline odds is 1.
 - For a slope coefficient,  $\beta_i= 0$ means that the corresponding OR is 1.
 
-In our example we can safely reject the hypothesis that the odds of microfilarial infection is the same in rainforest areas as in savannah areas.
+We can safely reject the hypothesis that the odds of microfilarial infection is the same in rainforest areas as in savannah areas.
 
 
 ## Deviance 
@@ -463,6 +469,20 @@ and can be compared to  $\chi^2$ distribution with $k$ df.
 
 
 ## global LR-test
+Thus we can directly compute the global LR-test from the output data: 
+
+
+```{r}
+#| echo: true
+#| eval: true
+out<-unlist(glance(mod))
+out
+(lambda <- out["null.deviance"]-out["deviance"])
+(df <- out["df.null"]-out["df.residual"])
+
+```
+
+## global LR-test
 In our example, $D = 1384.8$ and $D_0=1714.1$. Thus the test statistic is $\lambda_{LR}=1714.1-1384.8=329.3$. 
 
 We can use the `anova` command to run the test: 
@@ -473,8 +493,19 @@ We can use the `anova` command to run the test:
 #| eval: true
 mod<-glm(mf~area + agegrp, data=dat, family=binomial(link="logit"))
 mod_0<-glm(mf~1, data=dat, family=binomial(link="logit"))
-anova(mod_0, mod, test="LRT")
+lrt <- anova(mod_0, mod, test="LRT")
+lrt
+# Exact p-value
+lrt["Pr(>Chi)"]
+
 ```
+
+## LR-test vs. Walt test
+* LR-test is generally recommended as it is based on the actual likelihood ratio
+* The LR-test plays the same role in GLMs as the F-test in linear models
+* (Partial) LR-test usually require fitting the model twice (unrestricted and restricted model)
+* The Wald test avoids this by using a quadratic approximation of the likelihood function
+* For this reason, the Wald tests for single parameters are shown in standard regression output 
 
 ## LR test for interaction
 Recall our model for interaction 
