@@ -22,7 +22,7 @@ format:
 
 ### Information
 
-These are solutions for the exercises for [Linear Regression in R](https://zuw.me/kurse/dt.php?kid=4476) course of the [Public Health Sciences Course Program](https://www.medizin.unibe.ch/studies/study_programs/phs_course_program) at the [University of Bern](https://www.unibe.ch/).
+Exercises (solution R-code provided) for [Linear and Logistic Regression Modelling in R](https://zuw.me/kurse/dt.php?kid=4476) course of the [Public Health Sciences Course Program](https://www.medizin.unibe.ch/studies/study_programs/phs_course_program) at the [University of Bern](https://www.unibe.ch/).
 
 To follow along with the course, we recommend that you open a new R-Script (or Quarto/Markdown). Create a new folder on your local machine and copy the data sets from ILIAS to it. 
 
@@ -43,7 +43,7 @@ library_names <- c("tidyverse", "knitr", "broom", "gridExtra", "ggpubr", "ggpmis
 
 install_or_load_pack <- function(pack){
   create.pkg <- pack[!(pack %in% installed.packages()[, "Package"])]
-  if (length(create.pkg)) install.packages(create.pkg, dependencies = TRUE)
+  if (length(create.pkg)) install.packages(create.pkg, dependencies = TRUE, repos="https://cloud.r-project.org")
   sapply(pack, require, character.only = TRUE)
 }
 
@@ -254,7 +254,7 @@ summary_model_1$p.value
 
 #### Exercise 11
 
-Normalize `fev1` and `height` (`(i - mean(i)) / sd(i)`) and re-run `lm()` with them. This way you can verify that the fitted slope is the same as the correlation in Exercise 4.\
+Standardize `fev1` and `height` (`(i - mean(i)) / sd(i)`) and re-run `lm()` with them. This way you can verify that the fitted slope is the same as the correlation in Exercise 4.\
 
 ```{r}
 x_norm <- (x - mean(x)) / sd(x)
@@ -385,6 +385,7 @@ anova(model_full, model_reduced)
 
 ## Residual analysis
 
+
 Are the assumptions of linear regression met, such as linearity, independence, normality, and equal variance?
 
 For a quick look at the the models residuals we can use `plot()`.
@@ -395,7 +396,7 @@ par(mfrow = c(2, 2))
 plot(model_full)
 ```
 
-However we can use the package `performance` to analyse our model in depth. We can use `check_model` to see if our residuals are normally distributed. Explain your result. 
+However we can use the package `performance` to analyse our model in depth. We can use `check_model` to see if our residuals have zero mean across the whole range fitted values. Explain your result. 
 
 ```{r}
 #| code-fold: false
@@ -412,7 +413,7 @@ normality_result <- check_normality(model_full)
 normality_result
 ```
 
-Try to plot the QQ-plot of your normality_result with `plot()`. Do the dots follow the line?
+Try to plot the QQ-plot of your normality_result with `plot()`. Do the dots follow the line? What does this mean?
 
 ```{r}
 plot(normality_result, type = "qq")
@@ -457,7 +458,7 @@ plot(outliers_result)
 
 #### Exercise 17
 
-Use `vif()` to see if there are any problematic variables.
+Use `vif()` to see if there are any problematic variables. Comment on the result. 
 
 ```{r}
 vif(model_full)
