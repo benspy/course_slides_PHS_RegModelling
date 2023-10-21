@@ -55,7 +55,7 @@ library(car)
 
 ## Regression is all about means
 
-In regression modelling, we are interested estimating the conditional **expected value** (or mean) of an **dependent variable** given specific value(s) of one or more **independent variables**:
+In regression modelling, we are interested in estimating the conditional **expected value** (or mean) of an **dependent variable** given specific value(s) of one or more **independent variables**:
 
 $$E(Y|X_1=x_1, X_2=x_1, \cdots, X_p=x_1)= f(x_1, x_2, \cdots, x_p)$$ where $f()$ is some function.
 
@@ -73,8 +73,8 @@ Other terms sometimes used for
 
 We distinguish:
 
--   **Simple regression**: a single independant variable
--   **Multiple/multivariable regression**: multiple independent variables - NOT to be confused with multi-variate regression (multiple dependent variables)
+-   **Simple regression**: a single independent variable
+-   **Multiple/multivariable regression**: multiple independent variables - NOT to be confused with multivariate regression (multiple dependent variables)
 
 ## Data types
 
@@ -92,14 +92,15 @@ We distinguish:
 
 
 ## Plasma volume and body weight
-This table contains data on body weight in kg and plasma volume in l in $n=8$ healthy men: 
+This table contains data on body weight in kg and plasma volume in $n=8$ healthy men: 
 
+::: {style="font-size: 80%;"}
 ```{r, echo=FALSE}
 data<-read.table("data/plasvol.csv",header=TRUE,sep=";")
 #names(data)<-c("ID","Gewicht [kg]", "Plasmavolumen [l]")
 kable(data)
 ``` 
-
+:::
 
 
 ## Visualising the association
@@ -114,12 +115,12 @@ plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", yli
 
 
 ## Fitting a straight line 
-How can we fint the best fitting straight line?  
+How can we find the best fitting straight line?  
 
-_Idea_: Lets view $y_i$ ias the sum of a linear function of $x_i$ and a error term $\varepsilon_i$
+_Idea_: Let's view $y_i$ ias the sum of a linear function of $x_i$ and a error term $\varepsilon_i$
 
 $$y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
-Now lets find $\beta_0$ and $\beta_1$ such that the error terms become small. 
+Now let's find $\beta_0$ and $\beta_1$ such that the error terms become small. 
 
 ## Least squares estimation (LSE)
 In LSE the estimates $\beta_0$ and  $\beta_1$ are obtained by minimizing the *residual sum of squares*
@@ -185,14 +186,14 @@ text(72,3.3,lab=expression(hat("y")==0.0857+0.0436~"x"), pos=3)
 # text(mean(dat$w),2,lab=expression(hat(beta)[1]*bar("x")), col="red", pos=4)
 ```
 
-## Interpretation von $\beta_0$   
+## Interpretation of $\beta_0$   
 $\hat{\beta}_0$ is the estimated value of $y$ for $x=0$ and is referred to as **constant** or **intercept**. 
 
 ```{r}
 #| echo: false
 #| eval: true
 par(cex=1.8,mai=c(2,1.5,0.5,0.5))
-plot(data[,2],data[,3],bty="n",xlab="Gewicht [kg]" ,ylab="Plasmavolumen [l]", ylim=c(0,3.6),xlim=c(0,75))
+plot(data[,2],data[,3],bty="n",xlab="Weight [kg]" ,ylab="Plasma volume [l]", ylim=c(0,3.6),xlim=c(0,75))
 dat<-data[,2:3]
 names(dat)<-c("w","v")
 reg<-lm(v~w, data=dat)
@@ -213,7 +214,7 @@ text(0,0,lab=expression(hat(beta)[0]), col="red", pos=3)
 
 ## Centering independent variables
 
-Often  $x=0$ has no practival meaning and lies outside the range of observed data.  
+Often  $x=0$ has no practical meaning and lies outside the range of observed data.  
 
 By first centering then independent variable $\tilde{x}=x-\bar{x}$ and fitting the line 
 
@@ -246,12 +247,13 @@ abline(h=mean(dat$v),lty=2, lwd=1.5, col="blue")
 abline(v=mean(dat$wc),lty=2, lwd=1.5, col="blue")
 lines(c(mean(dat$wc),mean(dat$wc)),c(0,reg$coefficients[1]),col="red", lwd=2)
 text(0,1.5,lab=expression(hat(beta)[0]), col="red", pos=4)
+text(5,2,lab=expression(hat("y")==3.002+0.0436~"x"), pos=3)
 ```
 
 
 ## Interpretation von $\beta_1$  
 
-$\hat{\beta}_1$ is the estimated change in $y$ if $x$ increses by 1 unit. It is referred to as  **slope**. IWe estimate and increase in plasma volume by `r round(reg$coefficients[2],4)` l (`r round(reg$coefficients[2]*1000,1)`ml) per kg higher weight.
+$\hat{\beta}_1$ is the estimated change in $y$ if $x$ increses by 1 unit. It is referred to as  **slope**. We estimate and increase in plasma volume by `r round(reg$coefficients[2],4)` l (`r round(reg$coefficients[2]*1000,1)`ml) per kg higher weight.
 
 ```{r}
 #| echo: false
@@ -259,7 +261,7 @@ $\hat{\beta}_1$ is the estimated change in $y$ if $x$ increses by 1 unit. It is 
 #| fig-height: 6
 #| fig-width: 10
 par(cex=1.8,mai=c(2,1.5,0.1,0.5))
-plot(dat$wc,dat$v,bty="n",xlab="Gewicht zentriert [kg]" ,ylab="Plasmavolumen [l]", xlim=c(-5,5),ylim=c(2.5,3.5))
+plot(dat$wc,dat$v,bty="n",xlab="Centered body weight [kg]" ,ylab="Plasma volume [l]", xlim=c(-5,5),ylim=c(2.5,3.5))
 abline(reg, lwd=1.5)
 lines(c(0,1),c(mean(dat$v),mean(dat$v)),col="blue", lwd=2)
 lines(c(1,1),c(mean(dat$v),mean(dat$v)+reg$coefficients[2]),col="red", lwd=2)
@@ -368,11 +370,11 @@ Given a value $x_i$ of the independent variable, we assume that the dependent va
 
 $$Y_i= \beta_0 + \beta_1 x_i + \varepsilon_i$$
 
-Where the $\varepsilon_i$ are independently (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
+Where the $\varepsilon_i$ are independent (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
 
 The second assumption that the conditional mean of  $Y_i$ given $X_i= x_i$ is: 
 
-$$E(Y_|X=x)=\mu_{y|x}=\beta_0 + \beta_1 x$$
+$$E(Y|X=x)=\mu_{y|x}=\beta_0 + \beta_1 x$$
 
 
 
@@ -861,5 +863,23 @@ cat(paste(c("\nF-statistic:", " on"," and"), round(x$fstatistic,2), collapse="")
 
 
 ## Summary
+* Regression models are used to model the expected value of a dependent variable $Y$ as a function of one (univariable regression) or more (multiple regression) independent variables.
+* In linear models, which are used to model continuous outcomes, the function simply a linear term (linear in the parameters).
+* Linear models can be fitted by minimizing the residual sum of squares (Least Squares Estimation).
+* The intercept of the model represents the mean of the dependent variable when all independent variables are set to zero. If the independent variables are centered, the intercept will represent the sample mean of $Y$. 
+
+## Summary
+* Categorical variables with $k$ categories are commonly included in the model as $k-1$ dummy variables. 
+* The interpretation of a slope $\beta$-parameter depends on the scale of the independent variable: 
+  - Dummy variable representing a specific category of a categorical variable: $\beta$ is the mean difference in $Y$  between that category and the reference category. 
+  - Continuous variable: $\beta$ is the mean difference in $Y$ associated with unit change in the independent variable.
+* In univariable regression, there is a close correspondence between $\hat{\beta}_1$, $R^2$ and $r_{v,w}$.
+
+## Summary
+* The linear model assumes that the errors are independent, normally distributed, with mean 0 and constant variance.
+* Under these assumptions the sampling distribution of $t=\frac{\hat{\beta}-\beta}{\hat{SE}_\beta}$ is a $t$-distribution with $n-k$ degrees of freedom ($k$ is the number of $\beta$-parameters). 
+* The $t$/$F$-tests in standard regression output refer to the null-hypothesis that specific/all $\beta$-parameters are 0.
+* The two sample $t$-tests and the ANOVA $F$-test are easily performed using simple linear regression by including the compared groups as a dichotomous and categorical variable respectively. 
+
 
 

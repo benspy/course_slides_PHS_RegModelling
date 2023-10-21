@@ -89,18 +89,18 @@ my.summary = function(x, digits=3) {
 
 
 ## Multiple linear regression
-Generally, with multiple independent variables, $x_1, x_2, \dots, x_k$, we write the linear model as:
+Generally, with multiple independent variables, $x_1, x_2, \dots, x_p$, we write the linear model as:
 
-$$Y_i= \beta_0 + \beta_1 x_{1,i} + \beta_2 x_{2,i} +\dots + \beta_k x_{k,i}+ \varepsilon_i$$
+$$Y_i= \beta_0 + \beta_1 x_{1,i} + \beta_2 x_{2,i} +\dots + \beta_p x_{p,i}+ \varepsilon_i$$
 
-Where the  $\varepsilon_i$ are independently (_i. independence_), normally distributed (_ii. normality_) with mean 0 (_iii. zero mean_) and constant variance $\sigma^2$ (_iv. homoscedasticity_).
+Where the  $\varepsilon_i$ are independent (*independence*), normally distributed (*normality*) with mean 0 (*zero mean*) and constant variance $\sigma^2$ (*homoscedasticity*).
 
 
 ## Multiple linear regression
-The conditional mean of  $Y_i$ given specific values of the independent variables $x_1, x_2, \dots, x_k$ is thus: 
+The conditional mean of  $Y_i$ given specific values of the independent variables $x_1, x_2, \dots, x_p$ is thus: 
 
-$$\mu_{y|x_1, x_2,\dots,x_k}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_k x_k$$
-We obtain the $k+1$ $\beta$-parameters by least squares estimation. The residual sum of squares have $n-k-1$ degrees of freedom. 
+$$\mu_{y|x_1, x_2,\dots,x_p}=\beta_0 + \beta_1 x_1 +\beta_2 x_2 +\dots +\beta_p x_p$$
+We obtain the $p+1$ $\beta$-parameters by least squares estimation. The residual sum of squares have $n-p-1$ degrees of freedom. 
 
 
 ## Multiple linear regression
@@ -161,7 +161,7 @@ Estimated conditional mean of independent variable:
 
 $\mathbf{\hat{y}}=\mathbf {X}\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf {X} ^{\mathsf{T}}\mathbf {y} =\mathbf {H} \mathbf {y}$
 
-Here $\mathbf{H}=\mathbf {X}\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf{X} ^{\mathsf{T}}$ is the so-called _hat matrix_ (needed later on to extract leverages).
+Here $\mathbf{H}=\mathbf {X}\left(\mathbf {X} ^{\mathsf {T}}\mathbf {X} \right)^{-1}\mathbf{X} ^{\mathsf{T}}$ is the so-called _hat matrix_ (needed later).
 
 ## What is linear about the model?
 The model is linear in the $\beta$-parameters, not in the $x$-variables!
@@ -202,14 +202,7 @@ Common reasons for including multiple independent variables are:
 
 
 ## Modelling lung function
-Recall our regresion of $FEV_1$ on age.
-
-
-
-## Peru lung function dataset
-
-Peru lung function data (*perulung_ems.csv*): Lung function data und 636 children living in a deprived suburb of Lima, Peru. 
-
+Recall our simple linear regression of $FEV_1$ on age.
 ```{r}
 #| echo: false
 #| eval: true
@@ -221,16 +214,15 @@ data<- data |> mutate(id=as.integer(id),
                 asthma_hist=factor(asthma_hist, levels=c("never", "previous asthma", "current asthma"), labels=c("never", "previous asthma", "current asthma")))
 ```
 
-
-
 ```{r}
-#| echo: false
+#| echo: true
 #| eval: true
-my.summary(summary(lm(fev1~age , data=data)))
+mod_1<-lm(fev1~age, data=data)
+summary(mod_1)
+
 ```
 
-
-## Including weight
+## Including height
 Let's first look at the scatterplots
 ```{r}
 #| echo: true
@@ -241,7 +233,7 @@ Let's first look at the scatterplots
 pairs(data[,c("fev1", "age", "height")])
 ```
 
-## Including weight
+## Including height
 Include body height as additional dependent variable: 
 
 $$FEV_{1i}= \beta_0 + \beta_1\cdot \text{age}_i + \beta_2 \cdot \text{height}_i + \varepsilon_i$$
@@ -254,8 +246,8 @@ my.summary(summary(lm(fev1~age + height, data=data)))
 
 Observations: 
 
-* The slope for 'age' is mow much smaller (0.090 l/Jahr)  
-* $R^2$ has increaset to 0.436.  
+* The slope for 'age' is now much smaller (0.090 l/Jahr)  
+* $R^2$ has increased to 0.436.  
 
 ## Interpretation of parameters
 Age and height are correlated, part of the increase with age can be attrubuted to height.  
@@ -268,8 +260,8 @@ According to the current model:
 
 
 
-## F-Test in the output
-The F-test in the tests the null hypothesis that all slope parameters are simultaneously zero. 
+## F-Test in standard output
+The F-test in standard regression output tests the null hypothesis that all slope parameters are simultaneously zero. 
 
 In our case: 
 
@@ -289,12 +281,12 @@ Observations:
 
 * The slope parameters for age and height haven't changed much.   
 * $R^2$ has slightly increased from 0.436 to 0.475.  
-* The degrees of freedom is reduced by 1.   
+* The degrees of freedom are reduced by 1.   
 
 
 
 ## Adjusted $R^2$
-$R^2$ can only increase when a new independent variable is added, regardless of whether the variable is truly informative (associated in the population) or not.
+$R^2$ can only increase when a new independent variable is added, regardless of whether the variable is truly associated with outcome in the population or not.
 
 The adjusted $R^2$ takes into account the loss of degrees of freedom from adding a variable: 
 
@@ -315,7 +307,7 @@ Observations:
 
 * Little change in the slopes of previously included variables.
 * Very slight increase in $\text{adj. } R^2$ from 0.473 to 0.479.  
-* Degrees of freedom is reduced by 2.   
+* Degrees of freedom are reduced by 2.   
 
 
 
@@ -335,7 +327,7 @@ Observations:
 ## Global vs. partial F-test
 The partial $F$-test tests the null-hypothesis that the $\beta$-parameters of the multiple selected variables are zero. 
 
-1. Fit the full model and store the residual stum of squares ($RSS$)
+1. Fit the full model and store the residual sum of squares ($RSS$)
 2. Fit the restricted model without the variables ($RSS_0$)
 
 The test statistic $F=\frac{(\text{RSS}_0-\text{RSS})/k}{\text{RSS}/(n-p-1)}$ follows an $F$-distrubion with $k$ and $n-p-1$ df. Here, $k$ is the number of restricted $\beta$-parameters (omitted in 2.) 
@@ -369,9 +361,9 @@ anova(mod_full, mod_restricted)
 * Strong evidence for a combined contribution after adjusting for age, height, sex (P<0.0001)
  
 ## Residual analysis
-A closer look at residuals allows us to detect strong violations of model assumptions or the undue influence of single observations. 
+A closer look at residuals can reveal violations of model assumptions or the undue influence of single observations. 
 
-The command `plot(`_model name_`)` will show four residual plots: 
+The command `plot(`_model name_`)` produces several plots: 
 
 1. Residuals vs. fitted values
 2. Q-Q plot
@@ -380,7 +372,7 @@ The command `plot(`_model name_`)` will show four residual plots:
 5. Residuals vs. Levarage
 6. Cook's dist vs Lev./(1-Lev.)
 
-We will focus on 1,2,3,5 which are shown by default.
+We will focus on plots 1,2,3, and 5. These are shown by default.
 
 ## Plot 1: Residuals vs. fitted values
 Checking the _zero mean_ assumption: The residuals should have  mean zero (approximately) over the entire range of fitted values
@@ -409,13 +401,13 @@ plot(mod_final, which=2)
 ```
 
 ## Misconceptions about normality
-1. The outcome must be normally distribution to run linear regression (or a t-test, or ANOVA)
+1. "The outcome must be normally distributed to run linear regression (or a t-test, or ANOVA)"
 
-FALSE: The normality assumption applies only to the residuals. You need to first fit the model. 
+**FALSE**: The normality assumption applies only to the residuals. You need to first fit the model. 
 
-2. Violation of normality invalidates the model
+2. "Violation of normality invalidates the model"
 
-FALSE: The model is robust against violations of normality if sample size (more precisely the residual df) is reasonably large and there are no points with large leverage (see below)
+**FALSE**: The model is robust against violations of normality if sample size (more precisely the residual df) is reasonably large and there are no points with large leverage (see below)
 
 ## Plot 3: Scale-location
 Checking the _homoscedasticity_ assumption: The square root of the standardized residuals should have constant mean over the range of fitted values. 
@@ -429,9 +421,11 @@ plot(mod_final, which=3)
 ## Leverage
 The leverage of observation $i$ is given by  $h_{ii}$, the $i$-th diagonal element of the hat matrix. 
 
-$h_{ii}$ measures how far away the values of the independent variables if the observation are from those of other observations. 
+$h_{ii}$ measures how far away the values of the independent variables for observation $i$ are from those of other observations. 
  
 In simple linear regression:  $h_{ii}= \frac{1}{n} + \frac{(x_i-\bar{x})^2}{\sum_j(x_j-\bar{x})^2}$
+
+$h_{ii}$ can vary between 0 and 1, and values greater than  $2(p+1)/n$ are considered to be high 
 
 Observations with high leverage can have a strong influence on fitted model. 
 
@@ -461,11 +455,11 @@ A common measure of influence is _Cook's distance_:
 $$D_i=\frac{\sum_j\left(\hat{y}_j-\hat{y}_{j(i)}\right)}{(p+1)\hat{\sigma}^2}$$
 Where the $\hat{y}_j$ and $\hat{y}_{j(i)}$ are the residuals from a model with and without observation $i$ respectively. 
 
-Cook's distance can calculated directly from the standardized residual and leverage of observation $i$: 
+Cook's distance can be calculated directly from the standardized residual and leverage of observation $i$: 
 
 $$D_i=\frac{1}{p+1}\cdot t_i^2\cdot\frac{h_{ii}}{1-h_{ii}}$$
 
-## Plot 5: Residuals vs. Levarage
+## Plot 5: Residuals vs. Leverage
 Residuals with high influence, i.e. high leverage and large residual, will lie close to the right top or bottom corners
 ```{r}
 #| echo: true
@@ -576,7 +570,7 @@ vif(reg)
 
 Note: 
 
-* High $VIF$ values does not imply that $SE$'s will be large
+* High $VIF$ values do not imply that $SE$'s will be large
 * Large sample sizes, by reducing $SE$, mitigate effects of multicollinearity
 * However, $VIF$s are useful for identifying problematic variables
 
@@ -587,22 +581,38 @@ When adding a new variable look out for:
 * Increases in standard errors 
 * Changes in the magnitude/sign of slope parameters
 
-What can you do: 
+What can you do? 
 
-* Check correlations/$VIF$ to identify problem variables
+* Check correlations/$VIF$ to identify problem variables.
 * Is one of the variables redundant; can it be excluded? (check $R^2$)
-* If not, can the variables be combined to single variable
+* If not, can problematic variables be combined to single variable.
 
 
-::: {.callout-note}
-Multicollinearty negatively affects parameter estimation but not prediction
-:::
+*Note*: Multicollinearity negatively affects parameter estimation but not prediction
 
-
-## Summary
 
 
 ## Summary
+* A main strength of regression models is the ability to include multiple independent variables
+
+* The term 'linear' in 'linear model' refers to the fact that the mean of the outcome is modeled as linear combination of the parameters. 
+
+* In multiple linear regression, a slope parameter is interpreted as the mean change in the outcome associated with unit change of the corresponding variable, *keeping the values of all other variables fixed*. Note, the particular values at which they are fixed are irrelevant.
+
+
+## Summary
+* The number of degrees of freedom (df) of the residual sum of squares is $n-p-1$ where $p$ is the number included variables
+* This thus also is the df of $t$-tests for individual parameters and the denominator df of $F$-tests. 
+* The global $F$-test tests the null-hypothesis that all $p$ slope parameters are 0 (numerator df = $p$), i.e. the model does not explain variations in the outcome. 
+* The partial $F$-tests allows us to place similar restrictions on fewer parameters $k$ (numerator df = $k$)
+
+## Summary
+* The adjusted $R^2$ adjusts for the loss of residual df as variables are added and will tend to decrease if non-informative variables are included. 
+* Residual plots can reveal violations of model assumptions including non-zero means (Residuals vs. fitted), non-normality (Q-Q), and heteroscedasticity (scale location).
+* Residuals with high leverage can have a strong influence on the regression. The extent to which they do can be measured by Cook's distance. 
+* Multicollinearity between independent variables may greatly affect the stability, precision and interpretability of parameters. 
+
+
 
 
 
