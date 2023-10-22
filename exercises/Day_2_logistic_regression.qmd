@@ -1,0 +1,314 @@
+---
+title: "Applied regression modeling in R"
+
+authors:   
+  - name: "Guy-Alain Schnidrig (VPHI)"
+  - name: "Filipe Miguel Maximiano Alves de Sousa (VPHI)"
+  - name: "Eleftheria Michalopoulou (ISPM)"
+
+toc: true
+toc-depth: 10
+toc-location: left
+number-sections: false
+editor: source
+format: 
+  html:
+    self-contained: true
+    code-fold: true
+    theme: flatly
+
+---
+
+### Information
+
+These are the exercises for [Linearn and Logistic Regression in R](https://zuw.me/kurse/dt.php?kid=4476) course of the [Public Health Sciences Course Program](https://www.medizin.unibe.ch/studies/study_programs/phs_course_program) at the [University of Bern](https://www.unibe.ch/).
+
+We will use the Dataset “nocardia.csv” (modified), from Dohoo,I., Martin, W. & Stryhn,H., 2010. Veterinary Epidemiologic Research, Second Edition.
+
+This is a case-control study of mastitis caused by Nocardia spp., from 54 case herds and 54 control herds (outcome), with the predictors related to the management of the cows during the dry period. 
+Our outcome is the number of herds where there are mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
+
+The following are the variables:
+
+- "casecont": case or control status of the herd (outcome)
+- "dcpct": percentage of cows treated with dry-cow treatment
+- "dneo": use of neomycin-based dry-cow products in the last year (yes/no)
+- "dclox": use of cloxacillin-based dry-cow products in the last year (yes/no)
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+# Set language
+Sys.setenv(LANG = "en")
+
+# Clear memory
+rm(list=ls())
+gc()
+
+# Load libraries
+library_names <- c("tidyverse", "knitr", "broom", "gridExtra", "ggpubr", "ggpmisc", 
+                   "performance", "qqplotr", "patchwork", "see", "MASS", "car", "pROC","faraway","epiDisplay","epiR","ggplot2","descr",
+                   "ResourceSelection")
+
+lapply(library_names, function(x) {
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x)
+    library(x, character.only = TRUE)
+  }
+})
+rm(library_names)
+
+```
+
+# Logistic regression
+
+## Load data
+
+Load "nocardia.csv" data using the function "read_csv2()". Do not forget to define first the working directory from where you can upload the data, using the function "setwd()".
+
+```{r}
+#| code-fold: false
+
+#set the working directory
+setwd("H:/Aulas/PHS/Regression course/Logistic regression exercises")
+
+# Load the csv file
+CC_noccardia <- read_csv2("nocardia.csv")
+```
+
+### Exercise 1
+
+Use `head()` to display the first 10 rows of the data.
+
+```{r}
+CC_noccardia %>% 
+  head(10) %>% 
+  kable()
+```
+
+### Questions: 
+
+
+- Which types of variables do we have?
+
+
+- What is the variable type of our outcome?
+
+
+- Does this data set fits the assumptions of logistic regression?
+
+
+Transform to factors the variables "casecont", "dneo" and "dclox".
+
+```{r}
+
+#specifiy the following variables as factor
+CC_noccardia$casecont<-as.factor(CC_noccardia$casecont)
+CC_noccardia$dneo<-as.factor(CC_noccardia$dneo)
+CC_noccardia$dclox<-as.factor(CC_noccardia$dclox)
+
+```
+
+## Exploratory analyses
+
+### Exercise 2
+
+Using the functions "tabpct()" and "table()", produce 2*2 tables for casecont/dneo & casecont/dclox.
+
+```{r}
+#2*2 tables
+tabpct(CC_noccardia$casecont, CC_noccardia$dclox)
+
+tab1<-table(CC_noccardia$casecont, CC_noccardia$doth)
+
+```
+
+### Questions: 
+
+
+- Can you identify any patterns?
+
+
+And if you use the function "cdplot()"?
+
+```{r}
+cdplot(CC_noccardia$casecont ~ CC_noccardia$dcpct)
+```
+
+
+- How do you interpret this?
+
+
+
+
+### Exercise 3: variable investigation and interpretation of coefficients (dichotomous)
+
+
+Use the glm() function to see the effect of the explanatory variable "dneo". Choose family=binomial within the glm() function, which tells R that we want to fit logistic regression. 
+
+To interpret the result, reflect on the type of explanatory variable that we are using in this example. 
+
+```{r}
+mod1 <- glm(casecont ~ dneo,family = binomial, data = CC_noccardia)
+summary(mod1)
+confint.default(mod1)
+
+```
+
+### Questions: 
+
+
+- If we think on the equation B0+B1*X1, which values from mod1 result would be B0 and B1?
+
+
+- How do you interpret the estimate value for dneo? 
+
+
+- Which changes would you need to do to make it be easier to interpret?
+
+
+
+We can get now the odds ratio by exponentiating the estimates of the estimate and of the CI. You can use the functions "exp(coef("model"))".
+
+```{r}
+cbind(exp(coef(mod1)), exp(confint.default(mod1)))
+
+```
+
+
+
+### Questions: 
+
+
+- What does the odds ratio of the estimate mean?
+
+
+- What does this mean for the management of the animals? 
+
+
+
+
+
+### Exercise 4: variables investigation and interpretation of coefficients (continuous)
+
+We will look now to another predictor, "dcpct" (percentage of cows treated with dry-cow treatments in the herd). 
+
+Use the glm(), using this time the dcpct variable. Do not forget to choose family = binomial. 
+
+
+```{r}
+
+mod2 <- glm(casecont ~ dcpct,family = binomial, data = CC_noccardia)
+summary(mod2)
+confint.default(mod2)
+
+```
+
+
+
+### Questions: 
+
+
+- How do you interpret the estimate value for "dcpct"?
+
+
+- If you transform it in odds ratio, using the functions exp(coef("model")), what does it mean?
+
+
+
+```{r}
+cbind(exp(coef(mod2)), exp(confint.default(mod2)))
+
+```
+
+- Can you calculate the OR for the development of mastitis due to Nocardia spp. comparing herds where 30% and 60% of the animals are treated with dry treatment?
+
+
+
+
+```{r}
+
+exp(30*0.0072)
+```
+
+### Exercise 5: Probabilities
+
+Can you now calculate the probability of a herd having cases of mastitis due to Nocardia spp. given that 30% of the cows were treated with dry-cow treatments? And 50%?
+
+
+
+
+
+### Exercise 6: Confounding
+
+As seen, confounding can be assessed by removing the potential confounding variable from the model and making a subjective decision as to whether or not the coefficient of the variable of interest has changed substantially.
+
+Using the funcction "glm()", create a model the variables "dcpct", "dneo", "dclox" and "casecont" and another one with "dneo", "dclox" and "casecont". 
+
+You can then covert the log odds ratios to values of odds ratios with the functions exp(coef("model")). 
+
+```{r}
+mod3 <- glm(casecont ~ dcpct+dneo+dclox,family = binomial, data = CC_noccardia)
+summary(mod3)
+
+mod4 <- glm(casecont ~ dneo+dclox,family = binomial, data = CC_noccardia)
+summary(mod4)
+
+exp(coef(mod3))
+    
+exp(coef(mod4))
+
+```
+
+
+### Questions: 
+
+
+- Do you notice any change in the coefficient estimates?
+
+
+- If yes, which variable(s) changed more significantly?
+
+
+- What might this mean?
+
+
+
+
+You can also calculate the percentage of change in the estimates of the different variables between the two models using: (mod3$coef[4]-mod4$coef[3])/mod3$coef[4] (in this case, for dclox)
+
+```{r}
+
+(mod3$coef[4]-mod4$coef[3])/mod3$coef[4] 
+
+(exp(mod4$coef[3])-exp(mod3$coef[4]))/exp(mod3$coef[4]) 
+
+```
+
+
+
+
+### Exercise 7: Interactions
+
+Interaction is assessed by adding the cross-product term (var1 *var2) and determining if the coefficient for the cross-product is statistically significant.
+
+Evaluate the interaction between dneo and dclox by adding their cross-product to the model, using the glm() function.
+
+
+```{r}
+mod5 <- glm(casecont ~ dcpct + dneo * dclox, family = binomial, data = CC_noccardia)
+summary(mod5)
+
+```
+
+
+### Questions: 
+
+
+- What are the log OR values for the use of neomycin-based products only, cloxacilin-based products only and both together? 
+
+
+- What does this mean?
+
+
+- Should cloxacilin-based products be used alone or togehter with cloxacilin-based products?
+
+
