@@ -5,6 +5,8 @@ authors:
   - name: "Guy-Alain Schnidrig (VPHI)"
   - name: "Filipe Miguel Maximiano Alves de Sousa (VPHI)"
   - name: "Eleftheria Michalopoulou (ISPM)"
+  - name: "Beatriz Vidondo (VPHI)"
+  - name: "Ben Spycher (ISPM)"
 
 toc: true
 toc-depth: 10
@@ -26,14 +28,19 @@ These are the exercises for [Linearn and Logistic Regression in R](https://zuw.m
 We will use the Dataset “nocardia.csv” (modified), from Dohoo,I., Martin, W. & Stryhn,H., 2010. Veterinary Epidemiologic Research, Second Edition.
 
 This is a case-control study of mastitis caused by Nocardia spp., from 54 case herds and 54 control herds (outcome), with the predictors related to the management of the cows during the dry period. 
+
 Our outcome is the number of herds where there are mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
 
 The following are the variables:
 
 - "casecont": case or control status of the herd (outcome)
+
 - "dcpct": percentage of cows treated with dry-cow treatment
+
 - "dneo": use of neomycin-based dry-cow products in the last year (yes/no)
+
 - "dclox": use of cloxacillin-based dry-cow products in the last year (yes/no)
+
 
 ```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
 # Set language
@@ -62,7 +69,7 @@ rm(library_names)
 
 ## Load data
 
-Load "nocardia.csv" data using the function "read_csv2()". Do not forget to define first the working directory from where you can upload the data, using the function "setwd()".
+Load "nocardia_updated.csv" data using the function "read_csv2()". Do not forget to define first the working directory from where you can upload the data, using the function "setwd()".
 
 ```{r}
 #| code-fold: false
@@ -71,10 +78,10 @@ Load "nocardia.csv" data using the function "read_csv2()". Do not forget to defi
 setwd("H:/Aulas/PHS/Regression course/Logistic regression exercises")
 
 # Load the csv file
-CC_noccardia <- read_csv2("nocardia.csv")
+CC_noccardia <- read_csv2("nocardia_updated.csv")
 ```
 
-### Exercise 1
+### Exercise 1: variables
 
 Use `head()` to display the first 10 rows of the data.
 
@@ -96,14 +103,23 @@ CC_noccardia %>%
 - Does this data set fits the assumptions of logistic regression?
 
 
-Transform to factors the variables "casecont", "dneo" and "dclox".
+Transform to factors the variables "casecont", "dneo" and "dclox".\
+
+To facilitate the interpretation, change in "dneo" and "dclox" the values 0 to "No" and the values 1 to "Yes" respectively and in "casecont" the values 0 and 1 to "Control" and "Case", respectively.\ 
+
+You can use the functions "mutate()" and "factor()", defining then the levels (0,1) and the labels ("Yes" and "No").
 
 ```{r}
 
 #specifiy the following variables as factor
-CC_noccardia$casecont<-as.factor(CC_noccardia$casecont)
-CC_noccardia$dneo<-as.factor(CC_noccardia$dneo)
-CC_noccardia$dclox<-as.factor(CC_noccardia$dclox)
+CC_noccardia<- CC_noccardia %>%
+  mutate(dneo = factor(dneo, levels=c(0, 1), labels=c("No", "Yes")),
+         dclox = factor(dclox, levels=c(0, 1), labels=c("No", "Yes")),
+         casecont = factor(casecont, levels=c(0, 1), labels=c("Control", "Case")))
+
+# CC_noccardia$dneo<-as.factor(CC_noccardia$dneo)
+# CC_noccardia$dclox<-as.factor(CC_noccardia$dclox)
+# CC_noccardia$casecont<-as.factor(CC_noccardia$casecont)
 
 ```
 
@@ -116,8 +132,9 @@ Using the functions "tabpct()" and "table()", produce 2*2 tables for casecont/dn
 ```{r}
 #2*2 tables
 tabpct(CC_noccardia$casecont, CC_noccardia$dclox)
+tabpct(CC_noccardia$casecont, CC_noccardia$dneo)
 
-tab1<-table(CC_noccardia$casecont, CC_noccardia$doth)
+#tab1<-table(CC_noccardia$casecont, CC_noccardia$doth)
 
 ```
 
@@ -127,16 +144,16 @@ tab1<-table(CC_noccardia$casecont, CC_noccardia$doth)
 - Can you identify any patterns?
 
 
-And if you use the function "cdplot()"?
+And if you use the function "cdplot()" to plot the changes in casecont with different values of the other variables?
 
 ```{r}
 cdplot(CC_noccardia$casecont ~ CC_noccardia$dcpct)
+cdplot(CC_noccardia$casecont ~ CC_noccardia$dneo )
+cdplot(CC_noccardia$casecont ~ CC_noccardia$dclox )
 ```
-
+  
 
 - How do you interpret this?
-
-
 
 
 ### Exercise 3: variable investigation and interpretation of coefficients (dichotomous)
