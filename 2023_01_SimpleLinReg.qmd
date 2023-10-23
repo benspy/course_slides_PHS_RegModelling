@@ -590,7 +590,7 @@ mod_1_sum$coefficients[,1]+ qt(0.975,634)* mod_1_sum$coefficients[,2]
 ## Interpreting the output
 
 * There is strong evidence that $FEV_1$ varies by age in children ($P<0.001$)
-* $FEV_1$ is estimated to increase by 218 ml per year as children grow older (Strictly speaking we should infer not longitudinal changes from a cross-sectional study)
+* $FEV_1$ is estimated to increase by 218 ml per year as children grow older (Strictly speaking we should not infer longitudinal changes from a cross-sectional study)
 * We have 95% confidence that this value lies between 190ml and 247ml
 * Age differences account for about 1/4 of the variability on $FEV_1$ (More precisely the model accounts for...)
 
