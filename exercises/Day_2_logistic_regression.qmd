@@ -160,6 +160,7 @@ cdplot(CC_noccardia$casecont ~ CC_noccardia$dclox )
 
 
 Use the glm() function to see the effect of the explanatory variable "dneo". Choose family=binomial within the glm() function, which tells R that we want to fit logistic regression. 
+After having the model, calculate the Confidence Intervals (CI) of the estimates, using the function "confint.default("model")".
 
 To interpret the result, reflect on the type of explanatory variable that we are using in this example. 
 
@@ -168,6 +169,10 @@ mod1 <- glm(casecont ~ dneo,family = binomial, data = CC_noccardia)
 summary(mod1)
 confint.default(mod1)
 
+```
+
+```{r}
+tidy(mod1)
 ```
 
 ### Questions: 
@@ -183,13 +188,12 @@ confint.default(mod1)
 
 
 
-We can get now the odds ratio by exponentiating the estimates of the estimate and of the CI. You can use the functions "exp(coef("model"))".
+We can get now the odds ratio by exponentiating the estimates of the estimate and of the CI. You can use the functions "exp(coef("model"))" and the functions "exp(confint.default("model"))".
 
 ```{r}
 cbind(exp(coef(mod1)), exp(confint.default(mod1)))
 
 ```
-
 
 
 ### Questions: 
@@ -201,7 +205,12 @@ cbind(exp(coef(mod1)), exp(confint.default(mod1)))
 - What does this mean for the management of the animals? 
 
 
+Can you now calculate the probabability of mastitis in case animals are treated with neomicyn?
 
+```{r}
+
+exp(coef(mod1)[1]+coef(mod1)[2]*1) / (1+ (exp(coef(mod1)[1]+coef(mod1)[2]*1)))
+```
 
 
 ### Exercise 4: variables investigation and interpretation of coefficients (continuous)
@@ -227,7 +236,7 @@ confint.default(mod2)
 - How do you interpret the estimate value for "dcpct"?
 
 
-- If you transform it in odds ratio, using the functions exp(coef("model")), what does it mean?
+- If you transform it in odds ratio, using the functions exp(coef("model")) and "exp(confint.default("model")))", what does it mean?
 
 
 
@@ -236,14 +245,18 @@ cbind(exp(coef(mod2)), exp(confint.default(mod2)))
 
 ```
 
-- Can you calculate the OR for the development of mastitis due to Nocardia spp. comparing herds where 30% and 60% of the animals are treated with dry treatment?
-
+- Can you calculate the OR for the development of mastitis due to Nocardia spp. comparing herds where 30% and 60% of the animals are treated with dry treatment? (exp(log(odds(60))-log(odds(30))))
 
 
 
 ```{r}
 
-exp(30*0.0072)
+exp((coef(mod2)[1]+coef(mod2)[2]*60) - (coef(mod2)[1]+coef(mod2)[2]*30))
+
+#or instead
+
+exp(30*coef(mod2)[2])
+
 ```
 
 ### Exercise 5: Probabilities
@@ -251,7 +264,15 @@ exp(30*0.0072)
 Can you now calculate the probability of a herd having cases of mastitis due to Nocardia spp. given that 30% of the cows were treated with dry-cow treatments? And 50%?
 
 
+```{r}
+#for 30%
+exp(coef(mod2)[1]+coef(mod2)[2]*30) / (1+ (exp(coef(mod2)[1]+coef(mod2)[2]*30)))
 
+#for 50%
+exp(coef(mod2)[1]+coef(mod2)[2]*50) / (1+ (exp(coef(mod2)[1]+coef(mod2)[2]*50)))
+
+
+```
 
 
 ### Exercise 6: Confounding
