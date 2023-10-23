@@ -1,0 +1,701 @@
+---
+title: "Applied regression modeling in R"
+
+authors: 
+  - name: "Guy-Alain Schnidrig (VPHI)"
+  - name: "Filipe Miguel Maximiano Alves de Sousa (VPHI)"
+  - name: "Eleftheria Michalopoulou (ISPM)"
+  - name: "Beatriz Vidondo (VPHI)"
+  - name: "Ben Spycher (ISPM)"
+
+toc: true
+toc-depth: 10
+toc-location: left
+number-sections: false
+editor: source
+format: 
+  html:
+    self-contained: true
+    code-fold: true
+    theme: flatly
+---
+
+### Information
+
+These are the exercises for [Linearn and Logistic Regression in R](https://zuw.me/kurse/dt.php?kid=4476) course of the [Public Health Sciences Course Program](https://www.medizin.unibe.ch/studies/study_programs/phs_course_program) at the [University of Bern](https://www.unibe.ch/).
+
+We will use the Dataset “data_caerphilly_full.csv" to exemply the steps of the model “purposeful selection”.  
+
+This dataset contains data from a cohort study in Whales on risk factors for cardiovascular disease.\
+The objective of the study is to identify risk factors for myocardial infarction (outcome, variable "mi").
+
+After discussing and previous knowledge, a set of variables was choosen as possible explanatory variables.
+
+```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
+# Set language
+Sys.setenv(LANG = "en")
+
+# Clear memory
+rm(list=ls())
+gc()
+
+# Load libraries
+library_names <- c("tidyverse", "knitr", "broom", "gridExtra", "ggpubr", "ggpmisc", 
+                   "performance", "qqplotr", "patchwork", "see", "MASS", "car", "pROC","faraway","epiDisplay","epiR","ggplot2","descr",
+                   "ResourceSelection","flexmix")
+
+lapply(library_names, function(x) {
+  if (!require(x, character.only = TRUE)) {
+    install.packages(x)
+    library(x, character.only = TRUE)
+  }
+})
+rm(library_names)
+
+```
+
+# Logistic regression
+
+## Load data
+
+Load "data_caerphilly_full.csv" data using the function "read_csv2()". 
+
+```{r}
+#| code-fold: false
+
+# Load the csv file
+dat<-read.csv2("data_caerphilly_full.csv")
+str(dat)
+```
+
+#### Exercise 1: variables check
+
+Use `head()` to display the first 10 rows of the data.
+
+```{r}
+dat %>% 
+  head(10) %>% 
+  kable()
+```
+
+Look at the format of the different variables in the dataset. Transform those which are not in the correct format.\
+
+Transform first to factors some of the variables that will be used ("mi","socclass", "diabetes", "smoking", "hbpsyst", "bmicat", "cursmoke"). Transform the 0/1 in the categorical variables with that format in "No" and "Yes", respectively.
+
+Check that those which are numeric are in the numeric format. 
+
+```{r}
+# make factors out of character variables
+dat<- dat %>% 
+  mutate(mi = factor(mi, levels=c(0, 1), labels=c("No", "Yes")),
+                    socclass = factor(socclass, levels=c("I", "II", "IIINM", "IIIM", "IV", "V")), 
+                    diabetes=factor(diabetes, levels=c("No/uncertain", "Yes")), 
+                    smoking=factor(smoking, levels=c("Never smoked", " Ex>5 years", "Ex 1-4 years" ,"<15 per day", ">15 per day")),
+                    hbpsyst = factor(hbpsyst, levels=c(0, 1), labels=c("No", "Yes")),
+                    hbpdias = factor(hbpdias, levels=c(0, 1), labels=c("No", "Yes")),
+                    bmicat = factor(bmicat, levels=c("Underweight", "Normal", "Overweight", "Obese")),
+                    cursmoke = factor(cursmoke, levels=c("No", "Yes")),
+                    fibrin= as.numeric(fibrin),
+                    totchol=as.numeric(totchol),
+                    hdlchol=as.numeric(hdlchol),
+                    bpdias=as.numeric(bpdias),
+                    bmi=as.numeric(bmi),
+                    bpsyst=as.numeric(bpsyst),
+                    )
+
+```
+
+# Variable selection by steps
+
+## Exercise 2: Variable selection
+
+As previously said, the first step to build a model is to choose a set of possible explanatory/predictor variables, based on previous knowledge. In this case we have initially selected a set of variables that can be risk factors for "mi".
+
+In the dataset we have some categorical variables based on continuous variables (such as "hbpsyst"). We will drop (for now) these variables, to keep the full information of the continuous variable.
+
+We will start with a model including the variables "socclass", "diabetes", "cursmoke", "smoking", "fibrin", "totchol", "hdlchol", "bpsyst", "bpdias" and "bmi". 
+
+
+- Create first a vector containing the above listed variables "c()".
+
+```{r}
+
+vars<-c("socclass", "diabetes", "cursmoke", "smoking", "fibrin", "totchol", "hdlchol", "bpsyst", "bpdias", "bmi" )
+
+```
+
+As seen during the lecture, usually not all of the selected variables will be good explanatory variables of the outcome. We need, therefore, to follow some steps to define and select the variables that will integrate the final model. 
+
+
+## Step 1 - Univariable model regressions
+
+Test with an univariable model the different selected explanatory variables, using the function "glm()" and the variable "mi" as the outcome variable. 
+
+We can start by choosing three variables - "hbpdias", "totchol" and "cursmoke" - and making three univariable models with each one of the variables. Check for the estimate values and the P-values. For each model calculate the Likelihood Ratio as well with "anova("model", test="Chisq")[["Pr(>Chi)"]][2])". We will include for the final model de variables with a P-value bellow 0.2 (based on Likelihood Ratio, to evaluate the model). 
+
+```{r}
+#hbpdias  
+  model_v1<-glm(mi ~ hbpdias  , data=dat, family=binomial(link="logit"))
+  summary(model_v1)
+  print("hbpdias")
+  print(summary(model_v1)$coef)
+  print("p-value LR-test:")
+  print(anova(model_v1, test="Chisq")[["Pr(>Chi)"]][2])
+
+#totchol  
+  model_v2<-glm(mi ~totchol, data=dat, family=binomial(link="logit"))
+  summary(model_v2)
+  print("totchol")
+  print(summary(model_v2)$coef)
+  print("p-value LR-test:")
+  print(anova(model_v2, test="Chisq")[["Pr(>Chi)"]][2])
+
+#cursmoke
+  model_v3<-glm(mi ~ cursmoke , data=dat, family=binomial(link="logit"))
+  summary(model_v3)
+  print("cursmoke")
+  print(summary(model_v3)$coef)
+  print("p-value LR-test:")
+  print(anova(model_v3, test="Chisq")[["Pr(>Chi)"]][2])
+```
+To automate the process, we can use a "for loop" to go through all the variables we want to test in the univariable model. Each variable will be used independently with the function "glm()". 
+
+```{r}
+
+for (var in vars) {
+  formula <- paste("mi ~", var )
+  model<-glm(formula, data=dat, family=binomial(link="logit"))
+  cat("\n")
+  print(var)
+  print(summary(model)$coef)
+  print("p-value LR-test:")
+  print(anova(model, test="Chisq")[["Pr(>Chi)"]][2])
+}
+```
+### Questions: 
+
+- Which variables will you include?
+
+
+# Step 2: Multivariable model - including all selected variables
+
+After running the univariable models, we can now build a multivariable model which will include all the variables selected during the first step.
+
+We can now use the function "glm()" (glm(outcome variable ~ explanatory variables, data=dat, family=binomial(link="logit"))), including all the previously selected variables.
+
+```{r}
+
+mod_f<-glm(mi ~ socclass + diabetes + cursmoke + smoking + fibrin + totchol + hdlchol + bpsyst + bpdias + bmi, data=dat, family=binomial(link="logit"))
+summary(mod_f)
+
+
+```
+
+In case there is a warning message that the model did not converge we can increase the number of interactions. We can add "control=list(maxi=1000)" to the function "glm()". 
+
+```{r}
+
+mod_f<-glm(mi ~ socclass + diabetes + cursmoke + smoking + fibrin + totchol + hdlchol + bpsyst + bpdias + bmi, data=dat, family=binomial(link="logit"), control=list(maxi=1000))
+summary(mod_f)
+
+```
+
+### Question:
+
+The model leaves out the category “smoking>15 per day“. Why?
+
+Change the order between "smoking" and "cursmoke" in the "glm()" function and check what happens. You can also tabulate the values of both variables with the function "table".  
+
+```{r}
+
+mod_f_changed<-glm(mi ~ socclass + diabetes  + smoking + cursmoke + fibrin + totchol + hdlchol + bpsyst + bpdias + bmi, data=dat, family=binomial(link="logit"))
+summary(mod_f_changed) 
+
+#and tabulate the values of the two variables
+table(dat$smoking, dat$cursmoke)
+
+```
+
+
+### Question: 
+
+- What is the difference? Why do you think it happens?
+
+
+("cursmoke" = "Yes" includes all current smokers which, are made up of those with ">15" and "<15" cigarettes per day in the variable "smoking".\
+In cases where the variables have 3 categories together representing only 2 categories, one has to be dropped. This is what happened. The category that is dropped depends on the position of the variable in the model). 
+
+
+Equivalently, we could drop cursmoke. Build a model similar to the previous one, but removing the variable "cursmoke" and check the residual deviance and the AIC value. 
+
+```{r}
+
+mod_f_alt<-glm(mi ~ socclass + diabetes  + smoking + fibrin + totchol + hdlchol + bpsyst + bpdias + bmi, data=dat, family=binomial(link="logit"))
+summary(mod_f_alt)
+
+```
+### Question: 
+
+- Are there any differences?
+
+- Looking at the results of the results from our model, would you decide to build another model with less categories? 
+
+- If yes, why and which ones?
+
+
+
+# Step 3
+
+Let us exclude the variables with P-values of the Wald test higher than 0.1 for all the categories of the categorical variables and for the continuous variables (in this case "bmi" and "bpsyst").
+
+As there are some other variables where the P-values are relatively high, let us compare models with and without these variables. 
+
+### Question:
+
+- Which variables would you like to test further?
+
+### Exercise: 
+
+Build a new model using as explanatory variables "socclass", "diabetes", "cursmoke", "smoking", "fibrin", "totchol", "hdlchol" and "bpdias".
+
+After, build two other models, one without "socclass" and the other without "smoking".
+
+```{r}
+
+mod_f<-glm(mi ~ socclass + diabetes + cursmoke + smoking + fibrin + totchol + hdlchol + bpdias , data=dat, family=binomial(link="logit"))
+
+mod_r1<-glm(mi ~ diabetes + cursmoke + smoking + fibrin + totchol + hdlchol + bpdias , data=dat, family=binomial(link="logit")) # without socclass
+summary(mod_r1)
+
+mod_r2<-glm(mi ~ socclass + diabetes + cursmoke + fibrin + totchol + hdlchol + bpdias , data=dat, family=binomial(link="logit")) # without smoking
+summary(mod_r2)
+
+
+```
+Let us now compare the two new restricted models with the full model "mod_f". 
+Run a LR-test for the restricted model against the full model "mod_f".
+
+
+```{r}
+
+anova(mod_f, mod_r1, test="Chisq") 
+anova(mod_f, mod_r2, test="Chisq")  
+
+```
+
+### Questions: 
+
+- How do you interpret the results of each comparison?
+
+- What would be your decision on the inclusion/exclusion of the variables?
+
+- Which variables would you include?
+
+
+
+
+
+## New model
+
+Based on the previous results, we can exclude "bmi", "bpsyst", "socclass" and "cursmoke" (in case we keep "smoking").
+
+Build a new reduced model, excluding the referred variables, and compare it with the model including the referred variables. 
+
+```{r}
+
+mod_r<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+anova(mod_f, mod_r, test="Chisq") 
+
+```
+
+Look also at the AIC values of the two models, using the function "summary()" and at the BIC values using the function "BIC()".
+
+```{r}
+summary(mod_f)
+summary(mod_r)
+
+summary(mod_f$aic)
+summary(mod_r$aic)
+
+BIC(mod_f)
+BIC(mod_r)
+```
+### Questions: 
+
+- Looking at the comparison between both models, which model would you reject? 
+
+- Why?
+
+
+## Exercise: checking for confoundings from excluded variables
+
+### Questions: 
+
+- Looking at the variables included and excluded, do you think there might exist any confounding? 
+
+- Which ones? Test them.
+
+
+```{r}
+
+mod_test1<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+
+mod_test2<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol+ bpsyst+ bpdias , data=dat, family=binomial(link="logit"))
+
+
+summary(mod_test1)
+summary(mod_test2)
+```
+The only coefficient that has a major change is "bpdias", but this is understandable as diastolic blood pressure are correlated. 
+
+"bpdias" appears to be adequately able to replace the little explanatory information that "bpsyst" was adding
+
+
+
+# Step 4
+
+## New model 
+
+```{r}
+
+mod_n<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(mod_n)
+
+#with social class
+mod_n1<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias + socclass , data=dat, family=binomial(link="logit"))
+summary(mod_n1)
+
+#with bmi
+mod_n2<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias+ bmi , data=dat, family=binomial(link="logit"))
+summary(mod_n2)
+
+```
+## Exercise:
+Look at the AIC, BIC, Wald and LR-test values. 
+
+```{r}
+
+#LR-test
+anova(mod_n, mod_n1, test="Chisq") 
+anova(mod_n, mod_n2, test="Chisq") 
+
+#AIC
+summary(mod_n$aic)
+summary(mod_n1$aic)
+summary(mod_n2$aic)
+
+#BIC
+BIC(mod_n)
+BIC(mod_n1)
+BIC(mod_n2)
+```
+```{r}
+#with smoking
+mod_n3<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(mod_n3)
+
+mod_n4<-glm(mi ~ diabetes + cursmoke + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(mod_n4)
+```
+
+```{r}
+
+#AIC
+summary(mod_n3$aic)
+summary(mod_n4$aic)
+
+#BIC
+BIC(mod_n3)
+BIC(mod_n4)
+```
+
+### Question: 
+
+- What would your decision be?
+
+
+
+# Step 5: verify assumption for continuous variables
+
+Let us now verify the assumption of linear associations (on the logit scale) for continuous variables.
+
+We can start with the variable "fibrin". 
+
+First step: Create a factor variable assigning individuals to categories of the continuous variable
+
+```{r}
+
+# define a factor variable representing quintils of fibrin
+quint <- quantile(dat$fibrin, seq(0,1,0.2))
+dat$fibrin_q <- cut(dat$fibrin, quint, include.lowest = TRUE)
+
+```
+
+Second step: Create a numeric variable assigning individuals to the median/midpoint value within their category
+
+```{r}
+# a numeric variable representing medians within quintiles
+qmed <- tapply(dat$fibrin, dat$fibrin_q, median)
+dat$fibrin_qm <- qmed[dat$fibrin_q]
+```
+
+Third step: Fit the regression model once with the factor variable and once with the numeric variable entered as linear term.
+
+```{r}
+# run regressions
+temp<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+
+temp1<-glm(mi ~ diabetes + smoking + fibrin_qm+ totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+
+temp2<-glm(mi ~ diabetes + smoking + fibrin_q + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+
+
+# anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+new <- dat[1,] |> dplyr::select(diabetes, smoking, totchol,hdlchol, bpdias)
+new <- cbind(new, fibrin_q=levels(dat$fibrin_q), fibrin_qm=qmed)
+new$fit1<-predict(temp1, newdata=new)
+new$fit2<-predict(temp2, newdata=new)
+
+```
+
+Fourth step: Plot the the logits of both models (keeping values of other covariates fixed) against the medians/midpoints of the categories
+
+```{r}
+
+# Plots logit scale
+ggplot(data=new, aes(x=fibrin_qm)) +
+  geom_vline(xintercept = quint, linetype="dotted",  color = "blue") +
+  geom_line(aes(y=fit1), color="red") +
+  geom_line(aes(y=fit2), col="blue") +
+  xlab("fibrin") + ylab("logit") +
+    geom_text(data = NULL, x = 5, y = -1.55, label = "Linear on quintile medians", color="red", size = 5, hjust="left" ) +
+  geom_text(data = NULL, x = 5, y = -1.45, label = "Unrestricted on quintiles", color="blue", size = 5, hjust="left") +
+  theme_minimal() +
+  theme(text = element_text(size = 20))
+
+```
+### Questions: 
+
+- Would you assume linearity?
+
+
+```{r}
+
+dat$fit <- temp$fitted.values
+dat$mi_n <- as.numeric(dat$mi=="Yes")
+ggplot(data=dat, aes(x=fibrin, y=mi_n))+
+  geom_point(alpha = 1/10) + 
+  geom_smooth(method="loess", se=TRUE) + 
+#  geom_line(data=new, aes(y=fit, x=fibrin), color="red") +
+  geom_smooth(aes(y=fit), method="loess",  color="red", se=FALSE) +
+  xlab("fibrin") + ylab("probability") +
+  geom_text(data = NULL, x = 1, y = .7, label = "LOESS of predictions based on linear logits", color="red", size = 5, hjust="left" ) +
+  geom_text(data = NULL, x = 1, y = .8, label = "LOESS of outcome", color="blue",  size = 5, hjust="left") +
+    theme_minimal() +
+  theme(text = element_text(size = 20)) 
+```
+
+
+
+```{r}
+# fibrin
+# define a factor variable representing quintils of fibrin
+hist(dat$fibrin)
+quint <- quantile(dat$fibrin, seq(0,1,0.2))
+dat$fibrin_q <- cut(dat$fibrin, quint, include.lowest = TRUE)
+# a numeric variable representing means within quintiles
+qmeans <- tapply(dat$fibrin, dat$fibrin_q, mean)
+dat$fibrin_qm <- qmeans[dat$fibrin_q]
+table(dat$fibrin_q, dat$fibrin_qm)
+# run regressions
+temp1<-glm(mi ~ diabetes + smoking + fibrin_q+ totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp1)
+temp2<-glm(mi ~ diabetes + smoking + fibrin_qm + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp2)
+anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+
+```
+
+# Step 6: Add any variables excluded at step 2 -> none excluded -> stay with current model
+
+
+# Step 7: Check for interactions
+
+
+We should now assess plausible interactions between explanatory variables. A possible one is an interaction between total cholesterol ("totchol") and "smoking". 
+
+### Exercise: check for interaction between "totchol" and "smoking".
+
+```{r}
+mod_n_int<-glm(mi ~ diabetes + smoking * totchol + fibrin + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(mod_n_int)
+anova(mod_n, mod_n_int, test="Chisq") # -> exclude interaction
+
+summary(mod_n$aic)
+summary(mod_n_int$aic)
+
+BIC(mod_n)
+BIC(mod_n_int)
+```
+
+### Questions: 
+
+- What does this mean?
+
+- Would you include this interaction in the final model?
+
+
+### Model interpretation
+
+Look at the summary of the model
+
+```{r}
+summary(mod_n)
+
+
+```
+
+### Questions: 
+
+- How do you interpret the estimate value for "fibrin"?
+
+- How would it be easier to interpret the results of the model?
+
+
+- Can you do it for smoking Ex>5 years ? Can you calculate the CI? What does it mean?
+
+
+```{r}
+cbind(exp(coef(mod_n)[3]), exp(confint.default(mod_n, 'smoking Ex>5 years', level=0.95)))
+
+```
+
+- And for "hdlchol"? What does it mean?
+
+```{r}
+
+cbind(exp(coef(mod_n)["hdlchol"]), exp(confint.default(mod_n, 'hdlchol', level=0.95)))
+
+```
+
+- Calculate the OR for all the variables
+
+```{r}
+
+cbind(exp(coef(mod_n)),  exp(confint.default(mod_n)))
+
+```
+- Which variables can be considered risk factors?
+
+### Exercise: Prediction
+
+Using the function "predict()", try to predict what will be the most probable condition of someone with "diabetes"="Yes", "smoking"="<15 per day", "fibrin"=3, "totchol"=5, "hdlchol"=0.1 and "bpdias"=8
+
+```{r}
+
+new <- data.frame(diabetes="Yes", smoking="<15 per day", fibrin=3, totchol=5,hdlchol=0.1,bpdias=8)
+
+prediction<-predict(mod_n, newdata=new, type = "response")
+
+# Convert the probabilities to class labels (e.g., "yes" or "no")
+threshold <- 0.5  # Adjust this threshold if needed
+predicted_label <- ifelse(prediction > threshold, "yes", "no")
+predicted_label
+```
+
+In the code step 5 was the following. I changed it to fit the slides steps
+# Step 5:Repeat step 3 and 4 
+# Check again LR test for smoking
+```{r}
+mod_r<-glm(mi ~ diabetes + cursmoke  + fibrin + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+anova(mod_n, mod_r, test="Chisq") # Keep smoking -> keep the new model above (mod_n) not further repetitions of 3 and 4 needded
+```
+
+# Step 6: Add any variables excluded at step 2 -> none excluded -> stay with current model
+
+
+
+# Step 7: Check linearity of associations for continuous variables
+```{r}
+# fibrin
+# define a factor variable representing quintils of fibrin
+hist(dat$fibrin)
+quint <- quantile(dat$fibrin, seq(0,1,0.2))
+dat$fibrin_q <- cut(dat$fibrin, quint, include.lowest = TRUE)
+# a numeric variable representing means within quintiles
+qmeans <- tapply(dat$fibrin, dat$fibrin_q, mean)
+dat$fibrin_qm <- qmeans[dat$fibrin_q]
+table(dat$fibrin_q, dat$fibrin_qm)
+# run regressions
+temp1<-glm(mi ~ diabetes + smoking + fibrin_q+ totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp1)
+temp2<-glm(mi ~ diabetes + smoking + fibrin_qm + totchol + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp2)
+anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+```
+```{r}
+# totchol
+# define a factor variable representing quintils of totchol
+hist(dat$totchol)
+quint <- quantile(dat$totchol, seq(0,1,0.2))
+dat$totchol_q <- cut(dat$totchol, quint, include.lowest = TRUE)
+# a numeric variable representing means within quintiles
+qmeans <- tapply(dat$totchol, dat$totchol_q, mean)
+dat$totchol_qm <- qmeans[dat$totchol_q]
+table(dat$totchol_q, dat$totchol_qm)
+# run regressions
+temp1<-glm(mi ~ diabetes + smoking + fibrin + totchol_q+ hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp1)
+temp2<-glm(mi ~ diabetes + smoking + fibrin + totchol_qm + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp2)
+anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+
+# hdlchol
+# define a factor variable representing quintils of hdlchol
+hist(dat$hdlchol)
+quint <- quantile(dat$hdlchol, seq(0,1,0.2))
+dat$hdlchol_q <- cut(dat$hdlchol, quint, include.lowest = TRUE)
+# a numeric variable representing means within quintiles
+qmeans <- tapply(dat$hdlchol, dat$hdlchol_q, mean)
+dat$hdlchol_qm <- qmeans[dat$hdlchol_q]
+table(dat$hdlchol_q, dat$hdlchol_qm)
+# run regressions
+temp1<-glm(mi ~ diabetes + smoking + fibrin + totchol+ hdlchol_q +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp1)
+temp2<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol_qm +  bpdias , data=dat, family=binomial(link="logit"))
+summary(temp2)
+anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+
+# bpdias
+# define a factor variable representing quintiles of bpdias
+hist(dat$bpdias)
+quint <- quantile(dat$bpdias, seq(0,1,0.2))
+dat$bpdias_q <- cut(dat$bpdias, quint, include.lowest = TRUE)
+# a numeric variable representing means within quintiles
+qmeans <- tapply(dat$bpdias, dat$bpdias_q, mean)
+dat$bpdias_qm <- qmeans[dat$bpdias_q]
+table(dat$bpdias_q, dat$bpdias_qm)
+# run regressions
+temp1<-glm(mi ~ diabetes + smoking + fibrin + totchol+ hdlchol +  bpdias_q , data=dat, family=binomial(link="logit"))
+summary(temp1)
+temp2<-glm(mi ~ diabetes + smoking + fibrin + totchol + hdlchol +  bpdias_qm , data=dat, family=binomial(link="logit"))
+summary(temp2)
+anova(temp1, temp2, test="Chisq") # We can keep the restriction and assume linearity
+```
+
+##
+# Step 7: Any plausible interactions -> suggest totchol and smoking 
+
+```{r}
+mod_n_int<-glm(mi ~ diabetes + smoking * totchol + fibrin + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+summary(mod_n_int)
+anova(mod_n, mod_n_int, test="Chisq") # -> exclude interaction
+```
+
+##
+# final model -> mod_n
+
+```{r}
+summary(mod_n)
+
+```
