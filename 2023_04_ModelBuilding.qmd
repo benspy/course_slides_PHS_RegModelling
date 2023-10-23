@@ -42,6 +42,7 @@ library(RColorBrewer)
 
 ## Purpose of mulivariate models
 Common reasons for including multiple independent variables are: 
+
 * Risk factor modelling in analytic studies
     + Assessing dose-response relationship
     + Adjusting for confounding 
@@ -248,7 +249,7 @@ $$
 SE_{\hat\pi_{ML}}\approx \frac{1}{\sqrt{n \cdot \mathcal{I}}}
 $$
 
-Importantly, the $SE$ decreases inverse proportionally with $\sqrt{n}$ (under certain conditions that are commonly satisfied).
+Importantly, the $SE$ decreases inverse proportionally with $\sqrt{n}$.
 
 ## The ML estimator is consistent and asymptotically normal
 Again under certain conditions and assuming that the data arose from the hypothesized distribution, the following holds: 
@@ -507,7 +508,7 @@ lrt[["Pr(>Chi)"]]
 ## LR-test vs. Wald test
 * LR-test is generally recommended as it is based on the actual likelihood ratio
 * The LR-test plays the same role in GLMs as the F-test in linear models
-* (Partial) LR-test usually require fitting the model twice (unrestricted and restricted model)
+* The LR-test usually requires fitting the model twice (unrestricted and restricted model)
 * The Wald test avoids this by using a quadratic approximation of the likelihood function
 * For this reason, the Wald tests for single parameters are shown in standard regression output 
 
@@ -634,21 +635,21 @@ The model with minimum BIC value is preferred.
 
 
 ## AIC vs. BIC
-There are not clear-cut rules when which criterion to use. However: 
+There are no clear-cut rules when to use which criterion. However: 
 
-- BIC will tend to choose the correct model (as $n\rightarrow \infty$) if it is indeed among the candidate models. Generally preferred when the purpose is inference
+- BIC will tend to choose the correct model (as $n\rightarrow \infty$) if it is indeed among the candidate models. Generally preferred when the purpose is inference.
 
-- AIC will tend chose the best approximating model in terms of prediction error (as $n\rightarrow \infty$). Generally preferred when the purpose is prediction
+- AIC will tend chose the best approximating model in terms of prediction error (as $n\rightarrow \infty$). Generally preferred when the purpose is prediction.
 
 
 ## Purposeful selection
-With slight variation, we the approach "purposeful selection" from the book [Applied Logistic Regression](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118548387) by Stanley Lemeshow (Chapter 4.2)
+A common approach in epidemiology is "purposeful selection", taken here with slight variation from the book [Applied Logistic Regression](https://onlinelibrary.wiley.com/doi/book/10.1002/9781118548387) by Stanley Lemeshow (Chapter 4.2)
 
 We demonstrate the steps using the `Caerphilly dataset` which contains data on 1786 men who took part in the Caerphilly cohort study in Wales, a study of risk factors for cardiovascular disease. 
 
 - Our objecive: identify risk factors for the outcome myocardial infarction (`mi`). 
 
-- We (falsely) assume here that all men are followed-up for the same amount of time (probabilities can be interpreted as risks). 
+- We (falsely) assume that all men are followed-up for the same amount of time (probabilities can be interpreted as risks). 
 
 ## Caerphilly dataset 
 Potential risk factors considered: social class (`socclass`, 6 levels), diabetes (`diabetes`) smoking history and current smoking (`smoking`, `cursmoke`), blood levels of fibrinogen (`fibrin`), total cholesterol (`totchol`), HDL cholesterol (`hdlchol`), systolic and diastolic blood pressure (`bpsyst`,`bpdias`), and BMI (`bmi`).
@@ -749,7 +750,7 @@ We show two simple graphical methods to do this. The methods both compare an unr
 
 
 ## Checking linearity in the logit
-Method 1 consists of following steps: 
+Method 1: 
 
 
 1. Create a factor variable assigning individuals to categories of the continuous variable (quartiles or quintiles recommended).  
@@ -837,6 +838,16 @@ ggplot(data=new, aes(x=fibrin_qm)) +
   theme(text = element_text(size = 20))
 
 ```
+## Checking linearity in the logit 
+Method 2:
+
+- Fit the the model including the continuous variable as a linear term, i.e. assuming linearity in the logit.
+- Predict the probability of the outcome for each individual based on the fitted model. 
+- Plot a 'locally estimated scatterplot smoothing' (LOESS) function of these predicted probabilities over the range of the continuous variable.  
+- In the same plot, add a LOESS function of the outcome, optionally with pointwise confidence intervals. 
+- Agreement between the plots affirms linearity in the logit.
+
+
 
 ## Checking linearity in the logit 
 Simulated data based on model: $\text{logit}(\pi)=1.5  + 0.3x +0.3x^2$
