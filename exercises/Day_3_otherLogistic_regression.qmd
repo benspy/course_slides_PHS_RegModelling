@@ -37,7 +37,8 @@ rm(list=ls())
 gc()
 
 # Load libraries
-library_names <- c("survival", "knitr", "nnet", "MASS", "TH.data", "datasets")
+library_names <- c("survival", "knitr", "nnet", "MASS", "TH.data", "datasets", 
+                   "broom")
 
 install_or_load_pack <- function(pack){
   create.pkg <- pack[!(pack %in% installed.packages()[, "Package"])]
@@ -186,10 +187,19 @@ confint(multinom_melanom2, level = 0.95)
 #### (d) Odds estimated from the multivariable multinomial model
 What is the odds of dying from melanoma for a 75-year old man without tumor ulceration?
 
-**Hint:** the reference level of variable sex is 0 = female.
+**Hint:** the reference level of variable sex is 0 = female. The odds in question can be calculated manually just by looking the model estimated coefficients, but also using the output of `predict()`.
 ```{r}
 
 exp(-2.703762 + 0.01474460 * 75 + 0.5749964) 
+
+# or
+
+pred_noUlcer_75_male <- predict(
+  multinom_melanom2, newdata = data.frame(ulcer = "absent", age = 75, sex = 1),
+  type = "probs")
+
+pred_noUlcer_75_male["death from melanoma"] / pred_noUlcer_75_male["alive"]
+
 
 ```
 
@@ -199,20 +209,24 @@ exp(-2.703762 + 0.01474460 * 75 + 0.5749964)
 #### (e) Probabilities estimated from the multivariable multinomial model
 Calculate the probability of dying from melanoma for a 50-year old woman with tumor ulceration.
 
-**Hint:** The model estimates the following two log odds:
+**Hint:** Use function `predict()`. The probability in question can be also calculated manually given the model-estimated odds:
 
 $$log \biggl(\frac{P[status = \textit{death from melanoma} \ | \ ulcer = present]}{P[status = alive \ | \ ulcer = present]} \biggr)$$
 $$log \biggl(\frac{P[status = \textit{death from other causes} \ | \ ulcer = present]}{P[status = alive \ | \ ulcer = present]} \biggr)$$
-and we also know that
+and given that
 $$P[status = \textit{death from melanoma} \ | \ ulcer = present] + P[status = \textit{death from other causes} \ | \ ulcer = present] + P[status = alive \ | \ ulcer = present] = 1$$
-Calculate the two odds for a 50-year old woman with tumor ulceration and then solve the system of the three equations above to estimate the probability in question.
 
 ```{r}
 
+predict(
+  multinom_melanom2, newdata = data.frame(ulcer = "present", age = 50, sex = 0),
+  type = "probs")
+
+
+# Manual calculation:
 # The odds of dying from melanoma versus staying alive for a 50-year old woman
 # with tumor ulceration is:
-odds_deathMel <- exp(-2.703762 + 1.6152588 + 0.01474460 * 50) 
-odds_deathMel # 0.7037915
+# exp(-2.703762 + 1.6152588 + 0.01474460 * 50) = 0.7037915
 
 # This odds is equal to the probability of dying from melanoma over the 
 # probability of staying alive for a 50-year old woman with tumor ulceration:
@@ -225,8 +239,7 @@ odds_deathMel # 0.7037915
 
 # The odds of dying from other causes versus staying alive for a 50-year old 
 # woman with tumor ulceration is:
-odds_deathOther <- exp(-6.419789 + 0.4821069 + 0.06459613 * 50) 
-odds_deathOther # 0.06667831
+# exp(-6.419789 + 0.4821069 + 0.06459613 * 50) = 0.06667831
 
 # This odds is equal to the probability of dying from from other causes over the 
 # probability of staying alive for a 50-year old woman with tumor ulceration.
@@ -258,7 +271,6 @@ odds_deathOther # 0.06667831
 # old woman with tumor ulceration:
 # P[status = "death from melanoma" | ulcer = "present"] = 0.7037915 * 0.5648218 = 0.3975168
 
-odds_deathMel * (1 / (1 + odds_deathOther + odds_deathMel))
 
 ```
 
@@ -331,47 +343,117 @@ exp(ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"])
 <!-- #.....................................................................# -->
 
 #### (c) Proportional odds assumption meaning and visualization
-The ordinal logistic model we fitted in (a) assumes proportionality of odds. What does this mean? Plot the different odds estimated by the ordinal logistic model.
+The ordinal logistic model we fitted in (a) assumes proportionality of odds. What does this mean? Try to visualize this hypothesis.
 
 ```{r}
 
-plot(x = 1, ylim = c(0, 4), xlim = c(0, 1), type = "n", xaxs = "i", xaxt = "n",
-     yaxt = "n", yaxs = "i", ylab = "odds", 
+plot(x = 1, ylim = c(-3, 3), xlim = c(0, 1), type = "n", xaxs = "i", xaxt = "n",
+     yaxt = "n", yaxs = "i", ylab = "log(odds)", 
      xlab = "mother and/or sister with breast cancer history")
 axis(side = 1, at = c(0, 1), labels = c("No", "Yes"))
-axis(side = 2, at = c(0, round(exp(ordLog_mammo_sum$coefficients[
-  which(row.names(ordLog_mammo_sum$coefficients) != "HISTYes"), "Value"]), 3)), 
-  las = 1, cex.axis = 0.65)
+axis(side = 2, at = round(ordLog_mammo_sum$coefficients[
+  which(row.names(ordLog_mammo_sum$coefficients) != "HISTYes"), "Value"], 3),
+  las = 1)
+
 
 abline(coef = c(
-  exp(ordLog_mammo_sum$coefficients["Strongly Agree|Agree", "Value"]),
-  exp(ordLog_mammo_sum$coefficients["HISTYes", "Value"])), col = "red")
+  ordLog_mammo_sum$coefficients["Strongly Agree|Agree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
 
 abline(coef = c(
-  exp(ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"]),
-  exp(ordLog_mammo_sum$coefficients["HISTYes", "Value"])), col = "blue")
+  ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
 
 abline(coef = c(
-  exp(ordLog_mammo_sum$coefficients["Disagree|Strongly Disagree", "Value"]),
-  exp(ordLog_mammo_sum$coefficients["HISTYes", "Value"])), col = "green")
+  ordLog_mammo_sum$coefficients["Disagree|Strongly Disagree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
 
-legend("topleft", col = c("red", "blue", "green"), lty = rep(1, 3), legend = c(
+legend("topright", col = c("red", "blue", "green"), lty = rep(1, 3), legend = c(
   "Strongly Agree|Agree", "Agree|Disagree", "Disagree|Strongly Disagree"),
   cex = 0.8)
+
 
 ```
 
 
 <!-- #.....................................................................# -->
 
-#### (d) Test for proportional odds assumption
-After fitting a multinomial model to the data (again with `SYMPT` as dependent variable and `HIST` as explanatory variable), run a test to assess if there is evidence for a violation of the proportional odds assumption. 
+#### (d) Univariable multinomial regression model
+After fitting a multinomial model to the data (again with `SYMPT` as dependent variable and `HIST` as explanatory variable), calculate the log-odds estimated by the ordinal logistic model given the probabilities estimated from the multinomial model.
+
+**Hint:** Use `predict()` to estimate the following:
+
+* probability of strongly agreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
+
+* probability of agreeing to the statement for women with a mother and/or sister with breast cancer history  and for women without breast cancer history 
+* probability of disagreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
+
+* probability of strongly disagreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
+
+and plug these probabilities into the following log-odds:
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Agree or Disagree or Strongly Disagree} \ | \ HIST = No]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Agree} \ | \ HIST = No] + P[SYMPT = \textit{Disagree} \ | \ HIST = No] + P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = No]} \biggr)$
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree or Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Disagree or Strongly Disagree} \ | \ HIST = No]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No] + P[SYMPT = \textit{Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Disagree} \ | \ HIST = No] + P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = No]} \biggr)$
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree or Agree or Disagree} \ | \ HIST = No]}{P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = No]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No] + P[SYMPT = \textit{Agree} \ | \ HIST = No] + P[SYMPT = \textit{Disagree} \ | \ HIST = No]}{P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = No]} \biggr)$
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Agree or Disagree or Strongly Disagree} \ | \ HIST = Yes]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Agree} \ | \ HIST = Yes] + P[SYMPT = \textit{Disagree} \ | \ HIST = Yes] + P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = Yes]} \biggr)$
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree or Agree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Disagree or Strongly Disagree} \ | \ HIST = Yes]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = Yes] + P[SYMPT = \textit{Agree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Disagree} \ | \ HIST = Yes] + P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = Yes]} \biggr)$
+
+* $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree or Agree or Disagree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = Yes]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = Yes] + P[SYMPT = \textit{Agree} \ | \ HIST = Yes] + P[SYMPT = \textit{Disagree} \ | \ HIST = Yes]}{P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = Yes]} \biggr)$
 
 ```{r, message = FALSE}
 
 multinom_mammo <- multinom(SYMPT ~ HIST, data = mammoexp)
 
 multinom_mammo_sum <- summary(multinom_mammo)
+
+pred_multi_no <- predict(
+  multinom_mammo, newdata = data.frame(HIST = "No"), type = "probs")
+
+pred_multi_yes <- predict(
+  multinom_mammo, newdata = data.frame(HIST = "Yes"), type = "probs")
+
+
+logOdds_StrAg_Agr_no <- log(
+  pred_multi_no["Strongly Agree"] /
+    (pred_multi_no["Agree"] + pred_multi_no["Disagree"] + 
+       pred_multi_no["Strongly Disagree"]))
+
+logOdds_Agr_Disagr_no <- log(
+  (pred_multi_no["Strongly Agree"] + pred_multi_no["Agree"]) /
+  (pred_multi_no["Disagree"] + pred_multi_no["Strongly Disagree"]))
+
+logOdds_Disagr_StrDisagr_no <- log(
+  (pred_multi_no["Strongly Agree"] + pred_multi_no["Agree"] + 
+     pred_multi_no["Disagree"]) / pred_multi_no["Strongly Disagree"])
+
+
+logOdds_StrAg_Agr_yes <- log(
+  pred_multi_yes["Strongly Agree"] /
+    (pred_multi_yes["Agree"] + pred_multi_yes["Disagree"] + 
+       pred_multi_yes["Strongly Disagree"]))
+
+logOdds_Agr_Disagr_yes <- log(
+  (pred_multi_yes["Strongly Agree"] + pred_multi_yes["Agree"]) /
+  (pred_multi_yes["Disagree"] + pred_multi_yes["Strongly Disagree"]))
+
+logOdds_Disagr_StrDisagr_yes <- log(
+  (pred_multi_yes["Strongly Agree"] + pred_multi_yes["Agree"] + 
+     pred_multi_yes["Disagree"]) / pred_multi_yes["Strongly Disagree"])
+
+
+```
+
+<!-- #.....................................................................# -->
+
+
+#### (e) Test for proportional odds assumption
+Run a test to assess if there is evidence for a violation of the proportional odds assumption. 
+
+```{r}
 
 G <- -2 * ((-ordLog_mammo$deviance/2) - (-multinom_mammo$deviance/2))
 
