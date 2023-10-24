@@ -29,7 +29,7 @@ We will use the Dataset “nocardia.csv” (modified), from Dohoo,I., Martin, W.
 
 This is a case-control study of mastitis caused by Nocardia spp., from 54 case herds and 54 control herds (outcome), with the predictors related to the management of the cows during the dry period. 
 
-Our outcome is the number of herds where there are mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
+Our outcome is a binary outcome of herds which have and do not have mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
 
 The following are the variables:
 
