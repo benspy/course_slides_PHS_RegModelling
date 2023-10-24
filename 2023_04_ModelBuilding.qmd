@@ -542,7 +542,7 @@ Criteria for including/excluding variables depend on the modelling purpose. Choo
 
 * Risk factor modelling
   + Single exposure of interest (confirmatory)
-    - Emphasis on prior knowledge & causal reasoning (DAGs)
+    - Emphasis on prior knowledge & causal reasoning (e.g. using directed acyclic graphs)
   + Risk factor identification (exploratory)
     - Combination of prior knowledge and statistical criteria
 * Prediction modelling 
@@ -553,7 +553,7 @@ The interest lies in assessing a causal association between an outcome and a sin
 
 * Risks for biases should be minimized at the design level
 * Assess potential confounding factors based on prior knowledge (e.g. using a DAG)
-* Adjust for measured potential counfounders in model 
+* Adjust for measured potential confounders in model 
 * Optionally, exclude variables that don't confound or contribute to model fit
 * Assess functional form of dose-response (on logit scale) 
 

@@ -56,22 +56,22 @@ library(kableExtra)
 | Count       | *Number of cases*        | Poisson regression       |
 
 
-## What is a statistical model
 
 
-
-## Parameters of interest
-* The plasma volumes of 8 males were 2.75, 2.86, 3.37, 2.76, 2.62, 3.49, 3.05, 3.12 litres. We estimate the mean ($\mu$) and standard deviation ($\sigma$).  
-* Nine of 12 household contacts of a SARS-CoV-2 positive index case also tested positive; the other 3 tested negative. We estimate $\pi$, the probability of transmission.  
-* We estimate the odds ratio for the association between coronary heart disease and high systolic blood pressure in a case control study.  
-
-
-## More formal definition
+## What is a statistical model?
 * A *statistical model* defines a family of probability distributions from which the observed data are hypothesized to arise from.
 
 * The individual distributions within the family are "indexed" (identified) by a set of *parameters*.
 
 * The purpose of estimation is to identify the "true" distribution, i.e. the "true" parameter values (*point estimation*), or a plausible range of the parameter values (*interval estimation*).
+
+
+## Parameters of interest - Examples
+* The plasma volumes of 8 males were 2.75, 2.86, 3.37, 2.76, 2.62, 3.49, 3.05, 3.12 litres. We estimate the mean ($\mu$) and standard deviation ($\sigma$).  
+* Nine of 12 household contacts of a SARS-CoV-2 positive index case also tested positive; the other 3 tested negative. We estimate $\pi$, the probability of transmission.  
+* We estimate the odds ratio for the association between coronary heart disease and high systolic blood pressure in a case control study.  
+
+
 
 ## Example linear model
 
