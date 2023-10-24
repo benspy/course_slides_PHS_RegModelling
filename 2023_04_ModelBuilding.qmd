@@ -16,6 +16,7 @@ library(broom)
 library(ggplot2)
 library(knitr)
 library(RColorBrewer)
+library(generics)
 ```
 
 ## Program overview
@@ -696,7 +697,7 @@ kable(tab, digits=6)
 :::
 
 ## Purposeful selection - Step 2
-Fit multivariable model with all selected variables from step 1. Select for exclusion based LR-test (categorical variables) or Wald 
+Fit multivariable model with all selected variables from step 1. Select for exclusion based LR-test (categorical variables, test not shown) or Wald 
 Selected for exclusion: `bmi`, `bpsyst`, `socclass`, `cursmoke` 
 
 Let's keep track of global model statistics: 
@@ -712,7 +713,7 @@ glance(mod_f)
 
 
 ## Purposeful selection - Step 3
-Fit a restricting model excluding varaibles selected in step 2 for exclusion. Run a LR-test for the restricted model against the full model from step 2 using a more stringent $\alpha$-value  (e.g. 0.1). Also observe the AIC, BIC. 
+Fit a restricting model excluding variables selected in step 2 for exclusion. Run a LR-test for the restricted model against the full model from step 2 using a more stringent $\alpha$-value  (e.g. 0.1). Also observe the AIC, BIC. 
 
 
 ::: {style="font-size: 80%;"}
@@ -752,12 +753,11 @@ We show two simple graphical methods to do this. The methods both compare an unr
 ## Checking linearity in the logit
 Method 1: 
 
-
 1. Create a factor variable assigning individuals to categories of the continuous variable (quartiles or quintiles recommended).  
 2. Create a numeric variable assigning individuals the median/midpoint value within their category
 3. Fit the regression model once with the factor variable and once with the numeric variable entered as linear term. 
 4. Plot the the logits of both models (keeping values of other covariates fixed) against the medians/midpoints of the categories
-5. Assume linearity if the association for the factor variable closely follows the linear association fo the grouped numeric variable.  
+5. Assume linearity if the association for the factor variable closely follows the linear association for the grouped numeric variable.  
 
 
 
@@ -891,46 +891,87 @@ ggplot(data=dat, aes(x=fibrin, y=mi_n))+
   theme(text = element_text(size = 20)) 
 ```
 
+## Modeling non-linear associations
+If linearity of in the logit cannot be maintained, the graph produced in method 1 (logit scale) may be suggestive of an appropriate functional relationship, e.g. including a quadratic term or a higher power. 
 
-## Stepwise forward regression
-run for caerphilly
+Two widely used approaches for flexibly modelling non-linear associations are :
 
-## Caerphilly dataset 
-stepwise for caerphilly
+- *Spline functions*: An in depth discussion of these including applications using the R package `mgcv` is given in the book [Generalized Additive Models](https://www.taylorfrancis.com/books/mono/10.1201/9781315370279/generalized-additive-models-simon-wood) by Simon N. Wood.
 
-## Problems of stepwise regression
-Generally not recommended
-
-Criticisms by Harrell (ref)
-
-Also investigator (partial) knowledge ignored, doesn't consider non-linear functional forms, interactions
+- *Fractional polynomials*: For detailed description of this method see the book [Multivariable Model-Building](https://onlinelibrary.wiley.com/doi/book/10.1002/9780470770771) by Patrick Royston and Willi Sauerbrei. 
 
 
-##	Purposeful variable selection
-As a viable approach for n>>p
-
-Explain steps
 
 
-##	Purposeful variable selection
-As a viable approach for n>>p
+## Purposeful selection - Step 5
+Our assessments of linearity in the logit did not suggest any major deviations from linearity. 
 
-Explain steps
+The pre-final model is the model identified at step 3: 
+
+```{r}
+#| echo: false
+#| eval: true
+tidy(mod_r)
+glance(mod_r)
+```
 
 
-##	Purposeful variable selection
-As a viable approach for n>>p
+## Purposeful selection - Step 6
+In the final step, we check for meaningful interactions among the remaining variables. 
 
-Explain steps
+To avoid unnecessary multiple testing, only suspected (based on prior knowledge) interactions should be tested. 
+
+Suppose that, in our case, the only suspected interaction was between smoking and total cholesterol.  
+```{r}
+#| echo: false
+#| eval: true
+mod_fin<-glm(mi ~ diabetes + smoking + totchol + fibrin + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+mod_fin_int<-glm(mi ~ diabetes + smoking * totchol + fibrin + hdlchol +  bpdias , data=dat, family=binomial(link="logit"))
+anova(mod_fin, mod_fin_int, test="Chisq") # -> exclude interaction
+```
+The LR-test provides no evidence for this interaction. 
 
 
-## Prediction modeling
-Special issues: 
+## Automated selection procedures
+There are a number of fully automated variable selection procedures such as: 
 
-- Often large number of candidate predictors -> risk of overfitting
-- Assessing model performance
-  - Discrimination / 
+- stepwise regression (forward, backward, both directions), see e.g. the command `stepAIC`
+- best subset regression, see package `leaps`
 
-## Further reading: 
-[García-Portugués E, Notes for Predictive Modeling](https://bookdown.org/egarpor/PM-UC3M/)
+We do not encourage the use of such methods because the judgement of the analyst is taken out of the process. 
+
+Also, steps like assessing linearity in the logit or interactions are ignored. 
+
+## Special issues in prediction modelling
+- The risk of overfitting is a common problem in prediction modelling (due to large numbers of candidate predictors and limited sample size)
+- Thus, it is important to check the optimism of the model in internal validation, typically using cross-validation methods (e.g. splitting the data into a training and test datasetm, k-fold cross-validation)
+- Penalized regression methods (e.g. ridge, lasso, elastic net) simultaneously fit select variables and fit model parameters, while avoiding the risk of overfitting. 
+
+## Special issues in prediction modelling
+- Prediction performance should be assessed both in internal (e.g. cross-validaton) and external validation (external dataset)
+- For dichotomous outcomes we distinguish between: 
+    + discrimination: Can the model distinguish individuals who will develop the event from those who won't (usually assessed by ROC curves and the AUC)
+    + calibration: Are estimated probabilities correct (often assessed through calibration plots)
+- An excellent book in the medical context is [Clinical Prediction Models](https://www.clinicalpredictionmodels.org/) by Ewout Steyerberg. 
+
+
+## Summary
+- Two common testing procedures used in the context of GLMs are LR-tests (based on the log-likelihood function) and Wald tests (based on the approximation of the log-likelihood around its maximum). The LR-test usually requires fitting two models (restricted and unrestricted).
+
+- Standard glm regression output provides Wald tests for individual parameters testing that the null hypotheses that these are zero and the F-test testing that all slope parameters are simultaneously zero. 
+
+- The LR-test replaces the role F-test in linear models and can be used to test multiple restrictions, for example when testing for interactions.
+
+## Summary
+- The model building strategy should be chosen in view of the modelling purpose.  
+
+- Purposeful selection is commonly used approach that integrates both the analysts judgement and statistical selection criteria
+
+- The AIC and BIC are model selection criteria that reward model fit and penalize model complexity.
+
+- Graphical methods provide and easy was to assess the assumption of linearity in the logit.
+
+
+
+
 
