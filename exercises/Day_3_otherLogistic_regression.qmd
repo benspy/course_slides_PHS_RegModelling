@@ -143,8 +143,8 @@ OR_32
 #### (b) Univariable multinomial model
 Fit a multinomial model with status as dependent variable and ulcer as explanatory variable. Which estimated coefficients show the odds ratios calculated in (a)? Calculate their 95% confidence intervals. Is there evidence for an association between tumor ulceration and the different odds of death?
 
-**Hints:** to set the reference levels of a factor, use function `relevel()`. To calculate confidence intervals for model estimated coefficients, use function `confint()`.
-```{r}
+**Hints:** to set the reference levels of a factor, use function `relevel()`. To calculate confidence intervals for model estimated coefficients, use function `confint()` or `tidy()` from package `broom`.
+```{r, message = FALSE}
 
 # Set the reference levels of the variables "status" and 
 # "ulcer":
@@ -157,7 +157,7 @@ multinom_melanom <- multinom(status ~ ulcer, data = Melanoma)
 summary(multinom_melanom)
 
 
-confint(multinom_melanom, level = 0.95)
+exp(confint(multinom_melanom, level = 0.95))
 
 ```
 
@@ -177,7 +177,7 @@ multinom_melanom2 <- multinom(status ~ ulcer + age + sex, data = Melanoma)
 
 summary(multinom_melanom2)
 
-confint(multinom_melanom2, level = 0.95)
+exp(confint(multinom_melanom2, level = 0.95))
 
 ```
 
@@ -250,7 +250,7 @@ predict(
 # P[status = "death from other causes" | ulcer = "present"] = 0.06667831 * P[status = "alive" | ulcer = "present"]
 
 
-# We also kniw that: 
+# We also know that: 
 # P[status = "death from melanoma" | ulcer = "present"] + 
 #   P[status = "death from other causes" | ulcer = "present"] +
 #   P[status = "alive" | ulcer = "present"] = 1
@@ -320,7 +320,7 @@ ordLog_mammo_sum <- summary(ordLog_mammo)
 ordLog_mammo_sum
 
 
-confint(ordLog_mammo)
+exp(confint(ordLog_mammo, level = 0.95))
 
 ```
 
@@ -353,7 +353,7 @@ plot(x = 1, ylim = c(-3, 3), xlim = c(0, 1), type = "n", xaxs = "i", xaxt = "n",
 axis(side = 1, at = c(0, 1), labels = c("No", "Yes"))
 axis(side = 2, at = round(ordLog_mammo_sum$coefficients[
   which(row.names(ordLog_mammo_sum$coefficients) != "HISTYes"), "Value"], 3),
-  las = 1)
+  las = 1, cex.axis = 0.7)
 
 
 abline(coef = c(
@@ -381,16 +381,17 @@ legend("topright", col = c("red", "blue", "green"), lty = rep(1, 3), legend = c(
 #### (d) Univariable multinomial regression model
 After fitting a multinomial model to the data (again with `SYMPT` as dependent variable and `HIST` as explanatory variable), calculate the log-odds estimated by the ordinal logistic model given the probabilities estimated from the multinomial model.
 
-**Hint:** Use `predict()` to estimate the following:
+**Hint:** Use `predict()` plugging in the multinomial model to estimate the following probabilities:
 
 * probability of strongly agreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
 
 * probability of agreeing to the statement for women with a mother and/or sister with breast cancer history  and for women without breast cancer history 
+
 * probability of disagreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
 
 * probability of strongly disagreeing to the statement for women with a mother and/or sister with breast cancer history and for women without breast cancer history
 
-and plug these probabilities into the following log-odds:
+We have to then plug these probabilities into the following log-odds:
 
 * $log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Agree or Disagree or Strongly Disagree} \ | \ HIST = No]} \biggr) = log \biggl(\frac{P[SYMPT = \textit{Strongly Agree} \ | \ HIST = No]}{P[SYMPT = \textit{Agree} \ | \ HIST = No] + P[SYMPT = \textit{Disagree} \ | \ HIST = No] + P[SYMPT = \textit{Strongly Disagree} \ | \ HIST = No]} \biggr)$
 
@@ -410,12 +411,20 @@ multinom_mammo <- multinom(SYMPT ~ HIST, data = mammoexp)
 
 multinom_mammo_sum <- summary(multinom_mammo)
 
+
+# probabilities for women without breast cancer history ........................
+
 pred_multi_no <- predict(
   multinom_mammo, newdata = data.frame(HIST = "No"), type = "probs")
+
+
+# probabilities for women with a mother and/or sister with breast cancer history
 
 pred_multi_yes <- predict(
   multinom_mammo, newdata = data.frame(HIST = "Yes"), type = "probs")
 
+
+# log-odds for women without breast cancer history .............................
 
 logOdds_StrAg_Agr_no <- log(
   pred_multi_no["Strongly Agree"] /
@@ -431,6 +440,8 @@ logOdds_Disagr_StrDisagr_no <- log(
      pred_multi_no["Disagree"]) / pred_multi_no["Strongly Disagree"])
 
 
+# log-odds for women with a mother and/or sister with breast cancer history ....
+
 logOdds_StrAg_Agr_yes <- log(
   pred_multi_yes["Strongly Agree"] /
     (pred_multi_yes["Agree"] + pred_multi_yes["Disagree"] + 
@@ -443,6 +454,61 @@ logOdds_Agr_Disagr_yes <- log(
 logOdds_Disagr_StrDisagr_yes <- log(
   (pred_multi_yes["Strongly Agree"] + pred_multi_yes["Agree"] + 
      pred_multi_yes["Disagree"]) / pred_multi_yes["Strongly Disagree"])
+
+
+# Slopes (for plotting the above-calculated log-odds together with the log-odds
+# of the ordinal model) ........................................................
+
+x <- c("No", "Yes")
+
+y_StrAg_Agr <- c(logOdds_StrAg_Agr_no, logOdds_StrAg_Agr_yes)
+slope_StrAg_Agr <- coefficients(lm(y_StrAg_Agr ~ x))["xYes"]
+
+y_Agr_Disagr <- c(logOdds_Agr_Disagr_no, logOdds_Agr_Disagr_yes)
+slope_Agr_Disagr <- coefficients(lm(y_Agr_Disagr ~ x))["xYes"]
+
+y_Disagr_StrDisagr <- c(logOdds_Disagr_StrDisagr_no, 
+                        logOdds_Disagr_StrDisagr_yes)
+slope_Disagr_StrDisagr <- coefficients(lm(y_Disagr_StrDisagr ~ x))["xYes"]
+
+
+# Plot .........................................................................
+
+plot(x = 1, ylim = c(-6, 4), xlim = c(0, 1), type = "n", xaxs = "i", xaxt = "n",
+     yaxt = "n", yaxs = "i", ylab = "log(odds)", 
+     xlab = "mother and/or sister with breast cancer history")
+axis(side = 1, at = c(0, 1), labels = c("No", "Yes"))
+axis(side = 2, at = round(ordLog_mammo_sum$coefficients[
+  which(row.names(ordLog_mammo_sum$coefficients) != "HISTYes"), "Value"], 3),
+  las = 1, cex.axis = 0.7)
+
+
+abline(coef = c(
+  ordLog_mammo_sum$coefficients["Strongly Agree|Agree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
+
+abline(coef = c(
+  ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
+
+abline(coef = c(
+  ordLog_mammo_sum$coefficients["Disagree|Strongly Disagree", "Value"],
+  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
+
+
+abline(coef = c(logOdds_StrAg_Agr_no, slope_StrAg_Agr), col = "red", lty = 2)
+
+abline(coef = c(logOdds_Agr_Disagr_no, slope_Agr_Disagr), col = "blue", lty = 2)
+
+abline(coef = c(logOdds_Disagr_StrDisagr_no, slope_Disagr_StrDisagr), 
+       col = "green", lty = 2)
+
+legend("topright", col = c("red", "blue", "green"), lty = rep(1, 3), legend = c(
+  "Strongly Agree|Agree", "Agree|Disagree", "Disagree|Strongly Disagree"),
+  cex = 0.7)
+
+legend("bottomleft", lty = c(1, 2), legend = c("ordinal", "multinomial"),
+       cex = 0.7)
 
 
 ```
