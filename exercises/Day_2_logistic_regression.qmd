@@ -140,7 +140,7 @@ tabpct(CC_noccardia$casecont, CC_noccardia$dneo)
 ### Questions: 
 
 
-- In are the apparent associations more compatible with a harmful or protective effect of these exposures?
+- In the graphs are the apparent associations more compatible with a harmful or protective effect of these exposures?
 
 - Considering that this is a case-control study which presentation is more meaningful, row or column percentages?
 
