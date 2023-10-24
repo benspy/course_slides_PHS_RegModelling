@@ -156,7 +156,7 @@ multinom_melanom <- multinom(status ~ ulcer, data = Melanoma)
 
 summary(multinom_melanom)
 
-
+exp(coef(multinom_melanom))
 exp(confint(multinom_melanom, level = 0.95))
 
 ```
@@ -177,6 +177,8 @@ multinom_melanom2 <- multinom(status ~ ulcer + age + sex, data = Melanoma)
 
 summary(multinom_melanom2)
 
+
+exp(coef(multinom_melanom2))
 exp(confint(multinom_melanom2, level = 0.95))
 
 ```
@@ -319,6 +321,7 @@ ordLog_mammo <- polr(SYMPT ~ HIST, data = mammoexp, method = "logistic")
 ordLog_mammo_sum <- summary(ordLog_mammo)
 ordLog_mammo_sum
 
+exp(ordLog_mammo_sum$coefficients)
 
 exp(confint(ordLog_mammo, level = 0.95))
 
@@ -332,7 +335,7 @@ What's the odds of strongly agreeing or agreeing versus disagreeing or strongly 
 
 ```{r}
 
-exp(ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"] + 
+exp(ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"] - 
       ordLog_mammo_sum$coefficients["HISTYes", "Value"]) 
 
 exp(ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"]) 
@@ -358,15 +361,15 @@ axis(side = 2, at = round(ordLog_mammo_sum$coefficients[
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Strongly Agree|Agree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Disagree|Strongly Disagree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
 
 legend("topright", col = c("red", "blue", "green"), lty = rep(1, 3), legend = c(
   "Strongly Agree|Agree", "Agree|Disagree", "Disagree|Strongly Disagree"),
@@ -485,15 +488,15 @@ axis(side = 2, at = round(ordLog_mammo_sum$coefficients[
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Strongly Agree|Agree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "red")
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Agree|Disagree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "blue")
 
 abline(coef = c(
   ordLog_mammo_sum$coefficients["Disagree|Strongly Disagree", "Value"],
-  ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
+  -ordLog_mammo_sum$coefficients["HISTYes", "Value"]), col = "green")
 
 
 abline(coef = c(logOdds_StrAg_Agr_no, slope_StrAg_Agr), col = "red", lty = 2)
