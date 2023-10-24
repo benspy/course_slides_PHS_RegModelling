@@ -29,7 +29,7 @@ We will use the Dataset “nocardia.csv” (modified), from Dohoo,I., Martin, W.
 
 This is a case-control study of mastitis caused by Nocardia spp., from 54 case herds and 54 control herds (outcome), with the predictors related to the management of the cows during the dry period. 
 
-Our outcome is the number of herds where there are mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
+Our outcome is a binary outcome of herds which have and do not have mastitis caused by Nocardia spp. and our explanatory variables are the percentage of cows in the heard treated with dry-cow treatment and the use of neomycin-based and cloxacillin-based dry-cow products for the dry-cow treatments. 
 
 The following are the variables:
 
@@ -140,7 +140,7 @@ tabpct(CC_noccardia$casecont, CC_noccardia$dneo)
 ### Questions: 
 
 
-- In are the apparent associations more compatible with a harmful or protective effect of these exposures?
+- In the graphs are the apparent associations more compatible with a harmful or protective effect of these exposures?
 
 - Considering that this is a case-control study which presentation is more meaningful, row or column percentages?
 
@@ -262,7 +262,7 @@ exp(30*coef(mod2)[2])
 
 As seen, confounding can be assessed by removing or adding a potential confounding variable from the model and observing changes in the coefficients of the variable of interest. 
 
-begining with a univaribal logistic regression model including only "dneo", sequentially add "dclox" and "dcpct. 
+Begining with a univariable logistic regression model including only "dneo", sequentially add "dclox" and "dcpct. 
 
 Convert the parameters by exponentiating them
 
