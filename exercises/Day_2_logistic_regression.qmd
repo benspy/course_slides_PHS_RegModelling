@@ -262,7 +262,7 @@ exp(30*coef(mod2)[2])
 
 As seen, confounding can be assessed by removing or adding a potential confounding variable from the model and observing changes in the coefficients of the variable of interest. 
 
-begining with a univaribal logistic regression model including only "dneo", sequentially add "dclox" and "dcpct. 
+Begining with a univariable logistic regression model including only "dneo", sequentially add "dclox" and "dcpct. 
 
 Convert the parameters by exponentiating them
 
