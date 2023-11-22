@@ -26,7 +26,7 @@ Exercises (solution R-code provided) for [Linear and Logistic Regression Modelli
 
 To follow along with the course, we recommend that you open a new R-Script (or Quarto/Markdown). Create a new folder on your local machine and copy the data sets from ILIAS to it. 
 
-Before starting the exercises, you should run the provided setup chunk in at least once.
+Before starting the exercises, you should run the provided setup chunk at least once.
 
 
 ```{r setup, include=FALSE, echo=FALSE, warning=FALSE, message=FALSE}
@@ -192,7 +192,7 @@ summary(model_1)
 
 #### Exercise 7
 
-Given your fitted regression, what is the the predicted `fev1` of a child that is `113.8 cm` tall?\
+Given your fitted regression, what is the predicted `fev1` of a child that is `113.8 cm` tall?\
 Try to calculate it with $\hat{b0}$ + $\hat{b1}$ or use `predict()`.\
 What happens if you predict with a value that was not originally in the range of the data frame?
 
@@ -312,6 +312,12 @@ birthwt <- birthwt %>%
          mother_smokes = factor(mother_smokes, levels = c(0,1), labels=c("no","yes")),
          hypertension = factor(hypertension, levels = c(0,1), labels=c("no","yes")),
          uterine_irr = factor(uterine_irr, levels = c(0,1), labels=c("no","yes")))
+
+#standardize numerical variables (center to their means and scale to their sd's)
+birthwt <- birthwt %>% 
+  mutate(mother_age_c = scale(mother_age,center=T,scale=T),
+         mother_weight_c = scale(mother_weight,center=T,scale=T),
+  )
                     
 birthwt %>% 
   head(5) %>% 
@@ -322,7 +328,7 @@ birthwt %>%
 
 Create an univariate linear regression model with `birthweight` as the outcome and `mother_smokes` as the explanatory variable.
 
-1. What is the equation of the regression line, and what does the coefficient represent?
+1. What is the equation of the regression line, how do you interpret the regression coefficients? why there is not an estimate for `mother_smokesno`?
 
 2. How well does the model fit the data, and what is the value of the R-squared statistic?
 
@@ -333,31 +339,46 @@ model_uni <- lm(birthweight ~ mother_smokes, data = birthwt)
 summary(model_uni)
 
 ```
-Add `mother_weight` to your model.
 
-1. Describe the estimate of the weight coefficient. 
+Now build a model with `mother_weight`. Compare it to a model with standardized `mother_weight_c`
 
-2. Is R-squared different, and if so why?
+1. Interpret the intercept for `mother_weight_c`. 
 
-3. Reformulate your description of the effect of `mother_smokes` on the `birthweight`.
-
-4. Describe the effect of `mother_weight` on the `birthweight`. 
+2. How does it compare to the overall average of birthweight (crude estimate)?
 
 ```{r}
-model_two <- lm(birthweight ~ mother_smokes + mother_weight, data = birthwt)
+model_two <- lm(birthweight ~ mother_weight, data = birthwt)
 summary(model_two)
+
+model_three <- lm(birthweight ~ mother_weight_c, data = birthwt)
+summary(model_three)
+
+mean(birthwt$birthweight)
+```
+
+Now build a model with two variables, `mother_smokes` and `mother_weight`
+
+1. Interpret the slope of the `mother_weight`.
+
+3. Is R-squared different, and if so, why?
+
+3. Reformulate your interpretation of the effect of `mother_smokes` on the `birthweight`.
+
+4. Describe the effect of `mother_weight` on `birthweight`. 
+
+```{r}
+model_four <- lm(birthweight ~ mother_smokes + mother_weight, data = birthwt)
+summary(model_four)
 
 ```
 
 Add the variables `mother_age` and `hypertension` to your model.
 
-1. Where is the `mother_smokesno` estimate?
+1. How well does the model fit the data, and what is the value of the R-squared statistic?
 
-2. How well does the model fit the data, and what is the value of the R-squared statistic?
+2. Reformulate your description of the effect of `mother_smokes` on the `birthweight`.
 
-3. Reformulate your description of the effect of `mother_smokes` on the `birthweight`.
-
-4. Does a history of hypertension during pregnancy influence the birth weight of children? 
+3. Does a history of hypertension during pregnancy influence the birth weight of children? 
 
 ```{r}
 model_full <- lm(birthweight ~ mother_smokes + mother_age + mother_weight + hypertension, data = birthwt)
