@@ -377,7 +377,7 @@ model_reduced <- lm(formula = birthweight ~ mother_smokes + mother_weight, data 
 ```
 
 ```{r}
-anova(model_full, model_reduced)
+anova(model_reduced, model_full)
 # The `anova` function compares the two models and calculates the F-statistic and p-value to determine whether the full model (model_full) explains significantly more variance than the reduced model (model_reduced)
 
 # We conclude that the more complex model is significantly (p = 0.02162) better than the simpler model, and thus we favor the more complex model.
